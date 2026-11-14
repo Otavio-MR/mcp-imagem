@@ -1,0 +1,19 @@
+# artefatos gerados pelo Maven (recriados com os comandos do README)
+target/
+server/
+dependency-reduced-pom.xml
+
+# material local de apoio (projeto exemplo do professor e logs de build)
+/exemplo/
+*.log
+
+# IDEs (os arquivos do Eclipse .project, .classpath e .settings são versionados)
+.idea/
+*.iml
+.vscode/
+bin/
+.metadata/
+
+# sistema operacional
+.DS_Store
+Thumbs.db
