@@ -1,6 +1,5 @@
 package br.edu.ifpr.mcp_imagens.mcp.tools;
 
-import br.edu.ifpr.mcp_imagens.domain.exception.CorInvalidaException;
 import br.edu.ifpr.mcp_imagens.domain.model.Cor;
 import br.edu.ifpr.mcp_imagens.infra.config.CorParser;
 import br.edu.ifpr.mcp_imagens.mcp.utils.AbstractTool;
@@ -53,22 +52,9 @@ public class CalcularContrasteTool extends AbstractTool {
 
    @Override
    protected Object executar(ArgumentReader argumentos) {
-      Cor texto = lerCor(argumentos, "cor_texto");
-      Cor fundo = lerCor(argumentos, "cor_fundo");
+      Cor texto = parser.parse(argumentos.texto("cor_texto"), "cor_texto");
+      Cor fundo = parser.parse(argumentos.texto("cor_fundo"), "cor_fundo");
 
       return calculadora.calcular(texto, fundo);
-   }
-
-   // lê o parâmetro e indica qual deles tem a cor inválida
-   private Cor lerCor(ArgumentReader argumentos, String parametro) {
-      String texto = argumentos.texto(parametro);
-
-      try {
-         return parser.parse(texto);
-      }
-      catch (CorInvalidaException ex) {
-         throw new CorInvalidaException("parâmetro '" + parametro + "': " +
-                                        ex.getMessage());
-      }
    }
 }

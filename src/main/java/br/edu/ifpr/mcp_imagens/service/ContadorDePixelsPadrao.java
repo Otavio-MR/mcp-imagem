@@ -6,29 +6,29 @@ import br.edu.ifpr.mcp_imagens.domain.model.Imagem;
 import br.edu.ifpr.mcp_imagens.domain.model.ResultadoContagem;
 
 /**
- * Implementação de {@link ContadorDePixels}: percorre a imagem linha por
- * linha e pergunta ao critério, pixel a pixel, se ele conta.
+ * Implementação de {@link ContadorDePixels}: percorre a imagem e pergunta ao
+ * critério, pixel a pixel, se ele conta.
  */
 public class ContadorDePixelsPadrao implements ContadorDePixels {
+   /** Acumuladores da contagem em andamento. */
+   private static final class Contagem {
+      long considerado;
+      long quantidade;
+   }
+
    @Override
    public ResultadoContagem contar(Imagem imagem, CriterioDePixel criterio,
                                    boolean ignorarTransparentes) {
-      long quantidade = 0;
-      long considerado = 0;
+      Contagem contagem = new Contagem();
 
-      for (int y = 0; y < imagem.altura(); y++)
-         for (int x = 0; x < imagem.largura(); x++) {
-            int argb = imagem.argb(x, y);
-
-            if (ignorarTransparentes && (argb >>> 24) == 0)
-               continue;
-
-            considerado++;
-            if (criterio.aceita(argb))
-               quantidade++;
-         }
-      return new ResultadoContagem(quantidade, considerado,
-                                   Arredondamento.percentual(quantidade,
-                                                             considerado));
+      imagem.paraCadaPixel(ignorarTransparentes, argb -> {
+         contagem.considerado++;
+         if (criterio.aceita(argb))
+            contagem.quantidade++;
+      });
+      return new ResultadoContagem(contagem.quantidade, contagem.considerado,
+                                   Arredondamento.percentual(
+                                         contagem.quantidade,
+                                         contagem.considerado));
    }
 }

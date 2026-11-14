@@ -4,6 +4,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.junit.jupiter.api.Test;
 
 import br.edu.ifpr.mcp_imagens.testutil.ImagensSinteticas;
@@ -49,6 +52,40 @@ class ImagemTest {
       assertTrue(ImagensSinteticas.de(new int[] { 0xFFFF0000, 0x80FF0000 })
                                   .temCanalAlfa());
       assertTrue(ImagensSinteticas.solida(1, 1, 0x00000000).temCanalAlfa());
+   }
+
+   @Test
+   void paraCadaPixelPercorreLinhaPorLinhaDaEsquerdaParaADireita() {
+      Imagem imagem = ImagensSinteticas.de(new int[] { 1, 2, 3 },
+                                           new int[] { 4, 5, 6 });
+      List<Integer> vistos = new ArrayList<>();
+
+      imagem.paraCadaPixel(false, vistos::add);
+
+      assertEquals(List.of(1, 2, 3, 4, 5, 6), vistos);
+   }
+
+   @Test
+   void paraCadaPixelPodePularOsTransparentes() {
+      Imagem imagem = ImagensSinteticas.de(
+            new int[] { 0x00FF0000, 0x80FF0000, 0xFFFF0000 });
+      List<Integer> todos       = new ArrayList<>();
+      List<Integer> semTransp   = new ArrayList<>();
+
+      imagem.paraCadaPixel(false, todos::add);
+      imagem.paraCadaPixel(true, semTransp::add);
+
+      assertEquals(3, todos.size());
+      assertEquals(List.of(0x80FF0000, 0xFFFF0000), semTransp);
+   }
+
+   @Test
+   void paraCadaPixelEmImagemVaziaNaoChamaAAcao() {
+      List<Integer> vistos = new ArrayList<>();
+
+      ImagensSinteticas.de().paraCadaPixel(false, vistos::add);
+
+      assertTrue(vistos.isEmpty());
    }
 
    @Test

@@ -82,6 +82,22 @@ class CorParserTest {
    }
 
    @Test
+   void parseComParametroDevolveACorQuandoValida() {
+      assertEquals(new Cor(255, 0, 0), PARSER.parse("vermelho", "cor"));
+      assertEquals(new Cor(255, 255, 255), PARSER.parse("#fff", "cor"));
+   }
+
+   @ParameterizedTest
+   @ValueSource(strings = { "#GGGGGG", "xablau", "", "  " })
+   void parseComParametroIndicaQualParametroTemACorInvalida(String texto) {
+      CorInvalidaException ex = assertThrows(CorInvalidaException.class,
+            () -> PARSER.parse(texto, "cor_fundo"));
+
+      assertTrue(ex.getMessage().startsWith("parâmetro 'cor_fundo': "),
+                 ex.getMessage());
+   }
+
+   @Test
    void dicionarioComHexInvalidoFalhaAoCriar() {
       assertThrows(CorInvalidaException.class,
                    () -> new CorParser(Map.of("estranha", "#ZZZ")));

@@ -53,6 +53,23 @@ public class CorParser {
       return nomeada;
    }
 
+   /**
+    * Igual a {@link #parse(String)}, mas a mensagem de erro indica qual
+    * parâmetro da ferramenta tem a cor inválida.
+    *
+    * @param texto      o texto da cor
+    * @param parametro  nome do parâmetro de onde veio (p.ex. "cor_texto")
+    */
+   public Cor parse(String texto, String parametro) {
+      try {
+         return parse(texto);
+      }
+      catch (CorInvalidaException ex) {
+         throw new CorInvalidaException("parâmetro '" + parametro + "': " +
+                                        ex.getMessage());
+      }
+   }
+
    // minúsculas, sem acentos e com espaços trocados por hífen
    private static String normalizar(String nome) {
       String semAcentos = ACENTOS.matcher(
