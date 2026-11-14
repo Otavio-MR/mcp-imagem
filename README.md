@@ -39,6 +39,46 @@ Valem para todas as ferramentas que analisam imagens:
   caminho. As imagens ficam na pasta indicada pela variável de ambiente
   `IMG_DIR` (padrão: `./imagens`). Formatos aceitos: PNG, JPG/JPEG, GIF e BMP.
 
+* **Limites:** arquivo de até **20 MB** e imagem de até **25 milhões de
+  pixels** (largura x altura). As dimensões são lidas do cabeçalho da imagem
+  **antes** de decodificá-la, para não estourar a memória; acima do limite o
+  erro é `IMAGEM_MUITO_GRANDE`. Em GIF animado vale só o primeiro quadro. O
+  formato é reconhecido pelo conteúdo do arquivo; a extensão só precisa ser
+  uma das aceitas.
+* **Segurança do nome do arquivo:** são recusados (`PARAMETRO_INVALIDO`) nomes
+  com caminho, como `../segredo.png`, `..\segredo.png`, `C:\x.png`,
+  `/etc/passwd`, `pasta/a.png`, `.`, `..`, nomes vazios, com `:` ou com
+  caractere nulo. O arquivo é sempre procurado direto dentro de `IMG_DIR`.
+* **Brilho exato:** o brilho é calculado em aritmética inteira (pesos 2126,
+  7152 e 722 sobre 10000), o que dá o resultado exato da fórmula. Com `double`,
+  67 dos 256 tons de cinza dariam um brilho levemente diferente do valor (o
+  cinza 5 daria 4,999999999999999) e um pixel poderia cair do lado errado de
+  um limiar.
+* **Tolerância de cor:** é a diferença máxima permitida **por canal** (vermelho,
+  verde e azul, cada um comparado separadamente, sem somar). Com tolerância 1,
+  `#FE0000` conta como `#FF0000`. O alfa **não** entra na comparação de cor; a
+  transparência se controla com `ignorar_transparentes`.
+
+> **Tons de cinza (comportamento observado do Java).** Uma imagem em tons de
+> cinza de 8 ou 16 bits (`TYPE_BYTE_GRAY`, comum em PNG, BMP e JPG de uma só
+> banda) devolve em `BufferedImage.getRGB` valores **mais claros** que a mesma
+> imagem salva em RGB, porque o Java trata o cinza como linear e converte para
+> sRGB. Medido com o JDK 25 (amostra de cinza gravada, depois lida):
+>
+> | Amostra gravada | Cinza em RGB (r=g=b) | Cinza de 8 bits (`getRGB`) |
+> |---|---|---|
+> | 0 | `#000000` | `#000000` |
+> | 64 | `#404040` | `#898989` |
+> | 128 | `#808080` | `#BCBCBC` |
+> | 192 | `#C0C0C0` | `#E1E1E1` |
+> | 255 | `#FFFFFF` | `#FFFFFF` |
+>
+> Como todas as análises seguem a convenção de `getRGB`, uma imagem em tons de
+> cinza de 8 bits será medida **mais clara** do que aparece em um visualizador
+> de imagens. Para medidas fiéis, salve a imagem como RGB (por exemplo, no
+> modo "RGB" do seu editor) antes de copiá-la para a pasta. Um teste fixa esse
+> comportamento, para que uma mudança do JDK seja notada.
+
 > **Importante:** o servidor lê as imagens **da pasta configurada**, não os
 > anexos da conversa. Para analisar uma imagem, copie-a para a pasta `IMG_DIR`
 > e cite o nome do arquivo.
@@ -69,6 +109,20 @@ Todas as ferramentas:
 
 Nas tabelas de cada ferramenta, "erros específicos" lista só o que é próprio
 dela.
+
+**Mensagem de `IMAGEM_NAO_ENCONTRADA`.** Ela é didática: informa a pasta
+configurada e as imagens que existem nela (até 20 nomes; havendo mais, termina
+com "e mais N"), para que a IA oriente o usuário em vez de só falhar:
+
+```
+IMAGEM_NAO_ENCONTRADA: 'foto.png' não está na pasta 'C:\imagens'. Imagens anexadas à conversa não são visíveis ao servidor: copie o arquivo para essa pasta. Disponíveis: banner.png, icone.png
+```
+
+Se a pasta estiver vazia ou não existir, termina com `Disponíveis: nenhuma`. A
+existência do arquivo é conferida **antes** do formato: um `foto.webp` que não
+está na pasta dá `IMAGEM_NAO_ENCONTRADA`; um `notas.txt` que existe dá
+`FORMATO_NAO_SUPORTADO`. Um arquivo que existe mas não é uma imagem de verdade
+(texto com extensão `.png`, arquivo vazio ou cortado) dá `IMAGEM_INVALIDA`.
 
 ---
 
