@@ -146,6 +146,29 @@ class CorTest {
          assertEquals(new Cor(10, 20, 30, 255).luma(),
                       new Cor(10, 20, 30, 0).luma(), 1e-9);
       }
+
+      @Test
+      void lumaDeTodoCinzaEExatamenteOValorDele() {
+         // com double, 67 dos 256 tons dariam valores como 4,999999999999999
+         for (int v = 0; v <= 255; v++) {
+            assertEquals((double) v, new Cor(v, v, v).luma(), "cinza " + v);
+            assertEquals(v, (int) new Cor(v, v, v).luma(), "truncado " + v);
+         }
+      }
+
+      @Test
+      void lumaDeArgbValeOMesmoQueDaCor() {
+         Cor cor = new Cor(200, 100, 50, 25);
+
+         assertEquals(cor.luma(), Cor.luma(cor.argb()), 0.0);
+         assertEquals(255.0, Cor.luma(0xFFFFFFFF), 0.0);
+         assertEquals(0.0, Cor.luma(0xFF000000), 0.0);
+      }
+
+      @Test
+      void lumaDeArgbIgnoraOAlfa() {
+         assertEquals(Cor.luma(0xFF336699), Cor.luma(0x00336699), 0.0);
+      }
    }
 
    @Nested

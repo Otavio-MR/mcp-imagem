@@ -85,7 +85,24 @@ public record Cor(int r, int g, int b, int a) {
     * {@code 0,2126*R + 0,7152*G + 0,0722*B}.
     */
    public double luma() {
-      return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      return luma(r, g, b);
+   }
+
+   /**
+    * Brilho (luma) de um pixel no formato ARGB de
+    * {@code BufferedImage.getRGB}, sem criar um objeto {@code Cor} (as
+    * análises percorrem milhões de pixels).
+    */
+   public static double luma(int argb) {
+      return luma((argb >> 16) & 0xFF, (argb >> 8) & 0xFF, argb & 0xFF);
+   }
+
+   // Os pesos 0,2126, 0,7152 e 0,0722 viram 2126, 7152 e 722 sobre 10000. Em
+   // inteiros a soma é exata: com double, 67 dos 256 tons de cinza dariam um
+   // brilho um pouco diferente do valor (o cinza 5 daria 4,999999999999999) e
+   // um pixel poderia cair do lado errado de um limiar.
+   private static double luma(int r, int g, int b) {
+      return (2126 * r + 7152 * g + 722 * b) / 10000.0;
    }
 
    /**

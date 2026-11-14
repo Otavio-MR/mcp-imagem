@@ -16,4 +16,18 @@ public final class Arredondamento {
    public static BigDecimal duasCasas(double valor) {
       return BigDecimal.valueOf(valor).setScale(2, RoundingMode.HALF_UP);
    }
+
+   /**
+    * Percentual de {@code parte} em {@code total}, com 2 casas. A divisão é
+    * exata (sem passar por {@code double}). Total zero resulta em 0,00.
+    */
+   public static BigDecimal percentual(long parte, long total) {
+      if (total <= 0)
+         return BigDecimal.ZERO.setScale(2);
+
+      return BigDecimal.valueOf(parte)
+                       .multiply(BigDecimal.valueOf(100))
+                       .divide(BigDecimal.valueOf(total), 2,
+                               RoundingMode.HALF_UP);
+   }
 }
