@@ -1,0 +1,35 @@
+{
+   "fonte": "WCAG 2.x: critérios 1.4.3 (Contraste mínimo, nível AA), 1.4.6 (Contraste melhorado, nível AAA) e 1.4.11 (Contraste não textual, nível AA)",
+   "criterios": [
+      {
+         "id": "aa_texto_normal",
+         "nome": "AA texto normal",
+         "limiar": 4.5,
+         "descricao": "Texto comum, abaixo de 18 pt (24 px), ou abaixo de 14 pt (18,66 px) se estiver em negrito"
+      },
+      {
+         "id": "aa_texto_grande",
+         "nome": "AA texto grande",
+         "limiar": 3.0,
+         "descricao": "Texto grande: 18 pt (24 px) ou mais, ou 14 pt (18,66 px) ou mais em negrito"
+      },
+      {
+         "id": "aaa_texto_normal",
+         "nome": "AAA texto normal",
+         "limiar": 7.0,
+         "descricao": "Texto comum, no nível mais rigoroso (AAA)"
+      },
+      {
+         "id": "aaa_texto_grande",
+         "nome": "AAA texto grande",
+         "limiar": 4.5,
+         "descricao": "Texto grande, no nível mais rigoroso (AAA)"
+      },
+      {
+         "id": "componentes_de_interface",
+         "nome": "Componentes de interface",
+         "limiar": 3.0,
+         "descricao": "Bordas de campos, ícones e outros elementos gráficos necessários para entender e usar a interface"
+      }
+   ]
+}

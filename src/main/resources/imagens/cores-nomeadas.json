@@ -1,0 +1,31 @@
+{
+   "observacao": "Nomes de cores em português, escritos sem acentos e em minúsculas (a busca ignora maiúsculas e acentos), e seu valor em #RRGGBB. As 16 primeiras seguem as cores básicas do CSS; para precisão, use o valor hexadecimal.",
+   "cores": {
+      "branco": "#FFFFFF",
+      "prata": "#C0C0C0",
+      "cinza": "#808080",
+      "preto": "#000000",
+      "vermelho": "#FF0000",
+      "vinho": "#800000",
+      "amarelo": "#FFFF00",
+      "oliva": "#808000",
+      "verde-limao": "#00FF00",
+      "verde": "#008000",
+      "ciano": "#00FFFF",
+      "azul-petroleo": "#008080",
+      "azul": "#0000FF",
+      "azul-marinho": "#000080",
+      "magenta": "#FF00FF",
+      "roxo": "#800080",
+      "laranja": "#FFA500",
+      "rosa": "#FFC0CB",
+      "marrom": "#A52A2A",
+      "dourado": "#FFD700",
+      "violeta": "#EE82EE",
+      "turquesa": "#40E0D0",
+      "azul-claro": "#ADD8E6",
+      "verde-claro": "#90EE90",
+      "cinza-claro": "#D3D3D3",
+      "cinza-escuro": "#696969"
+   }
+}
