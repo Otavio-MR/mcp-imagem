@@ -29,24 +29,59 @@ public final class ImagensDeTeste {
     */
    public static Path criar(Path pasta, String nome, int largura, int altura,
                             int argb) {
-      String         extensao = nome.substring(nome.lastIndexOf('.') + 1)
-                                    .toLowerCase(Locale.ROOT);
-      int            tipo     = extensao.equals("jpg") ||
-                                extensao.equals("jpeg") ||
-                                extensao.equals("bmp")
-                                   ? BufferedImage.TYPE_INT_RGB
-                                   : BufferedImage.TYPE_INT_ARGB;
-      BufferedImage  imagem   = new BufferedImage(largura, altura, tipo);
+      BufferedImage imagem = nova(nome, largura, altura);
 
       for (int y = 0; y < altura; y++)
          for (int x = 0; x < largura; x++)
             imagem.setRGB(x, y, argb);
 
-      Path arquivo = pasta.resolve(nome);
+      return gravar(imagem, pasta, nome);
+   }
+
+   /**
+    * Grava uma imagem com os pixels informados (linhas de cima para baixo).
+    */
+   public static Path criarComPixels(Path pasta, String nome,
+                                     int[]... linhas) {
+      BufferedImage imagem = nova(nome, linhas[0].length, linhas.length);
+
+      for (int y = 0; y < linhas.length; y++)
+         for (int x = 0; x < linhas[y].length; x++)
+            imagem.setRGB(x, y, linhas[y][x]);
+
+      return gravar(imagem, pasta, nome);
+   }
+
+   /**
+    * Grava uma imagem em tons de cinza de 8 bits ({@code TYPE_BYTE_GRAY}), de
+    * uma linha, com as amostras informadas (0 a 255).
+    */
+   public static Path criarCinza(Path pasta, String nome, int... amostras) {
+      BufferedImage imagem = new BufferedImage(amostras.length, 1,
+                                               BufferedImage.TYPE_BYTE_GRAY);
+
+      for (int x = 0; x < amostras.length; x++)
+         imagem.getRaster().setSample(x, 0, 0, amostras[x]);
+
+      return gravar(imagem, pasta, nome);
+   }
+
+   private static BufferedImage nova(String nome, int largura, int altura) {
+      String extensao = extensao(nome);
+      int    tipo     = extensao.equals("jpg") || extensao.equals("jpeg") ||
+                        extensao.equals("bmp")
+                           ? BufferedImage.TYPE_INT_RGB
+                           : BufferedImage.TYPE_INT_ARGB;
+
+      return new BufferedImage(largura, altura, tipo);
+   }
+
+   private static Path gravar(BufferedImage imagem, Path pasta, String nome) {
+      String extensao = extensao(nome);
+      Path   arquivo  = pasta.resolve(nome);
 
       try {
-         if (!ImageIO.write(imagem, extensao.equals("jpeg") ? "jpg"
-                                                            : extensao,
+         if (!ImageIO.write(imagem, extensao.equals("jpeg") ? "jpg" : extensao,
                             arquivo.toFile()))
             throw new IllegalStateException("sem gravador para " + extensao);
       }
@@ -54,5 +89,9 @@ public final class ImagensDeTeste {
          throw new UncheckedIOException(ex);
       }
       return arquivo;
+   }
+
+   private static String extensao(String nome) {
+      return nome.substring(nome.lastIndexOf('.') + 1).toLowerCase(Locale.ROOT);
    }
 }
