@@ -12,6 +12,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.AfterAll;
@@ -48,6 +49,24 @@ class McpImagensServerIT {
    // nome e caminho para o servidor MCP
    private static final String SERVER_PATH = "server/mcp_imagens_server.jar";
 
+   private static final int VERMELHO = 0xFFFF0000;
+   private static final int BRANCO   = 0xFFFFFFFF;
+   private static final int PRETO    = 0xFF000000;
+
+   /** Imagens geradas para os testes e o formato que o servidor deve dar. */
+   private static final Map<String, String> IMAGENS = new TreeMap<>(
+                                                 String.CASE_INSENSITIVE_ORDER);
+
+   static {
+      IMAGENS.put("animacao.gif", "GIF");
+      IMAGENS.put("banner.png", "PNG");
+      IMAGENS.put("foto.jpg", "JPEG");
+      IMAGENS.put("icone.PNG", "PNG");
+      IMAGENS.put("tela.bmp", "BMP");
+      IMAGENS.put("falsa.png", "PNG");
+      IMAGENS.put("gigante.png", "PNG");
+   }
+
    private static Path          pastaDeImagens;
    private static McpSyncClient client;
 
@@ -55,12 +74,7 @@ class McpImagensServerIT {
    static void iniciarServidor() throws Exception {
       pastaDeImagens = Files.createTempDirectory("mcp-imagens-it");
 
-      ImagensDeTeste.criar(pastaDeImagens, "banner.png", 20, 10, 0xFF202020);
-      ImagensDeTeste.criar(pastaDeImagens, "icone.PNG", 8, 8, 0x00000000);
-      ImagensDeTeste.criar(pastaDeImagens, "foto.jpg", 16, 16, 0xFF808080);
-      ImagensDeTeste.criar(pastaDeImagens, "animacao.gif", 4, 4, 0xFFFF0000);
-      ImagensDeTeste.criar(pastaDeImagens, "tela.bmp", 6, 6, 0xFFFFFFFF);
-      Files.writeString(pastaDeImagens.resolve("notas.txt"), "não é imagem");
+      criarImagens();
 
       File serverJar = new File(SERVER_PATH);
       assertTrue(serverJar.isFile(), "JAR do servidor não encontrado: " +
@@ -77,6 +91,22 @@ class McpImagensServerIT {
 
       client = McpClient.sync(transport).build();
       client.initialize();
+   }
+
+   // as imagens têm cores e contagens conhecidas, usadas pelos testes
+   private static void criarImagens() throws Exception {
+      ImagensDeTeste.criar(pastaDeImagens, "banner.png", 20, 10, 0xFF202020);
+      ImagensDeTeste.criar(pastaDeImagens, "icone.PNG", 8, 8, 0x00000000);
+      ImagensDeTeste.criar(pastaDeImagens, "foto.jpg", 16, 16, 0xFF808080);
+      ImagensDeTeste.criar(pastaDeImagens, "animacao.gif", 4, 4, VERMELHO);
+      ImagensDeTeste.criar(pastaDeImagens, "tela.bmp", 6, 6, BRANCO);
+      // arquivo com extensão de imagem, mas que não é uma imagem
+      Files.writeString(pastaDeImagens.resolve("falsa.png"), "não sou imagem");
+      // cabeçalho que declara 6000 x 6000 pixels (acima do limite de 25 milhões)
+      ImagensDeTeste.criarPngSoComCabecalho(pastaDeImagens, "gigante.png",
+                                            6000, 6000);
+      // não é imagem pelo formato: não deve aparecer na lista
+      Files.writeString(pastaDeImagens.resolve("notas.txt"), "texto");
    }
 
    @AfterAll
@@ -126,9 +156,23 @@ class McpImagensServerIT {
       assertEquals(false, tool.inputSchema().get("additionalProperties"));
    }
 
+   /**
+    * Confere que a descrição de uma ferramenta que recebe {@code arquivo}
+    * diz que o arquivo precisa estar na pasta de imagens.
+    */
+   private static void assertDescricaoAvisaDaPasta(String nome) {
+      String descricao = ferramenta(nome).description();
+
+      assertTrue(descricao.contains("pasta de imagens"), nome + ": " + descricao);
+      assertTrue(descricao.contains("listar_imagens"), nome + ": " + descricao);
+      assertTrue(descricao.contains("anexadas à conversa NÃO"),
+                 nome + ": " + descricao);
+   }
+
    @Test
-   void servidorDisponibilizaAsFerramentasDaFase2() {
-      assertEquals(Set.of("listar_imagens", "calcular_contraste"),
+   void servidorDisponibilizaAsFerramentasEsperadas() {
+      assertEquals(Set.of("listar_imagens", "obter_informacoes",
+                          "calcular_contraste"),
                    client.listTools().tools().stream().map(Tool::name)
                          .collect(Collectors.toSet()));
    }
@@ -155,9 +199,8 @@ class McpImagensServerIT {
 
          assertFalse(resultado.isError(), Resultados.texto(resultado));
          assertEquals(pastaDeImagens.toString(), json.get("pasta").asString());
-         assertEquals(5, json.get("total").asInt());
-         assertEquals(List.of("animacao.gif", "banner.png", "foto.jpg",
-                              "icone.PNG", "tela.bmp"),
+         assertEquals(IMAGENS.size(), json.get("total").asInt());
+         assertEquals(List.copyOf(IMAGENS.keySet()),
                       json.get("imagens").valueStream()
                           .map(i -> i.get("nome").asString()).toList());
       }
@@ -166,7 +209,7 @@ class McpImagensServerIT {
       void informaFormatoETamanho() {
          JsonNode json = Resultados.json(chamar("listar_imagens", Map.of()));
 
-         assertEquals(List.of("GIF", "PNG", "JPEG", "PNG", "BMP"),
+         assertEquals(List.copyOf(IMAGENS.values()),
                       json.get("imagens").valueStream()
                           .map(i -> i.get("formato").asString()).toList());
          assertTrue(json.get("imagens").valueStream()
@@ -192,6 +235,115 @@ class McpImagensServerIT {
                       Resultados.texto(resultado),
                       "mensagem (com acentos) deveria chegar intacta pelo " +
                       "protocolo");
+      }
+   }
+
+   @Nested
+   class ObterInformacoes {
+      private JsonNode obter(String arquivo) {
+         CallToolResult resultado = chamar("obter_informacoes",
+                                           Map.of("arquivo", arquivo));
+
+         assertFalse(resultado.isError(), Resultados.texto(resultado));
+         return Resultados.json(resultado);
+      }
+
+      @Test
+      void estaDisponivelComDescricaoESchema() {
+         assertFerramentaDisponivel("obter_informacoes");
+         assertDescricaoAvisaDaPasta("obter_informacoes");
+         assertEquals(List.of("arquivo"),
+                      ferramenta("obter_informacoes").inputSchema()
+                                                     .get("required"));
+      }
+
+      @Test
+      void informaAsMedidasExatasDeUmPng() {
+         JsonNode json = obter("banner.png");
+
+         assertEquals("banner.png", json.get("arquivo").asString());
+         assertEquals("PNG", json.get("formato").asString());
+         assertEquals(20, json.get("largura").asInt());
+         assertEquals(10, json.get("altura").asInt());
+         assertEquals(200, json.get("totalPixels").asLong());
+         assertEquals(pastaDeImagens.resolve("banner.png").toFile().length(),
+                      json.get("tamanhoBytes").asLong());
+         assertTrue(json.get("tamanhoKb").asLong() >= 1);
+      }
+
+      @Test
+      void pngComAlfaDizQueTemCanalAlfa() {
+         JsonNode json = obter("icone.PNG");
+
+         assertEquals(8, json.get("largura").asInt());
+         assertTrue(json.get("temCanalAlfa").asBoolean());
+      }
+
+      @Test
+      void jpgEBmpNaoTemCanalAlfa() {
+         JsonNode jpg = obter("foto.jpg");
+         JsonNode bmp = obter("tela.bmp");
+
+         assertEquals("JPEG", jpg.get("formato").asString());
+         assertFalse(jpg.get("temCanalAlfa").asBoolean());
+         assertEquals("BMP", bmp.get("formato").asString());
+         assertFalse(bmp.get("temCanalAlfa").asBoolean());
+         assertEquals(6, bmp.get("altura").asInt());
+      }
+
+      @Test
+      void gifTemFormatoGif() {
+         assertEquals("GIF", obter("animacao.gif").get("formato").asString());
+      }
+
+      @Test
+      void imagemInexistenteTrazMensagemDidatica() {
+         CallToolResult resultado = chamar("obter_informacoes",
+               Map.of("arquivo", "nao-existe.png"));
+         String         texto     = Resultados.texto(resultado);
+
+         assertErro("IMAGEM_NAO_ENCONTRADA", resultado);
+         assertTrue(texto.contains("'nao-existe.png' não está na pasta '" +
+                                   pastaDeImagens + "'"), texto);
+         assertTrue(texto.contains("Imagens anexadas à conversa não são " +
+                                   "visíveis ao servidor"), texto);
+         assertTrue(texto.contains("Disponíveis: " +
+                                   String.join(", ", IMAGENS.keySet())), texto);
+      }
+
+      @Test
+      void formatoNaoSuportado() {
+         assertErro("FORMATO_NAO_SUPORTADO",
+                    chamar("obter_informacoes", Map.of("arquivo", "notas.txt")));
+      }
+
+      @Test
+      void imagemInvalida() {
+         assertErro("IMAGEM_INVALIDA",
+                    chamar("obter_informacoes", Map.of("arquivo", "falsa.png")));
+      }
+
+      @Test
+      void imagemMuitoGrande() {
+         CallToolResult resultado = chamar("obter_informacoes",
+               Map.of("arquivo", "gigante.png"));
+
+         assertErro("IMAGEM_MUITO_GRANDE", resultado);
+         assertTrue(Resultados.texto(resultado).contains("6000x6000"),
+                    Resultados.texto(resultado));
+      }
+
+      @Test
+      void caminhosSaoRecusados() {
+         for (String caminho : new String[] { "../segredo.png", "C:\\x.png",
+                                              "/etc/passwd" })
+            assertErro("PARAMETRO_INVALIDO",
+                       chamar("obter_informacoes", Map.of("arquivo", caminho)));
+      }
+
+      @Test
+      void arquivoAusente() {
+         assertErro("PARAMETRO_AUSENTE", chamar("obter_informacoes", Map.of()));
       }
    }
 

@@ -2,7 +2,9 @@ package br.edu.ifpr.mcp_imagens.testutil;
 
 import java.util.function.IntBinaryOperator;
 
+import br.edu.ifpr.mcp_imagens.domain.model.FormatoImagem;
 import br.edu.ifpr.mcp_imagens.domain.model.Imagem;
+import br.edu.ifpr.mcp_imagens.domain.model.ImagemAberta;
 
 /**
  * Cria imagens pequenas <b>em memória</b> para testar os serviços de análise,
@@ -46,6 +48,23 @@ public final class ImagensSinteticas {
                alfa = true;
 
       return new EmMemoria(linhas, alfa);
+   }
+
+   /**
+    * Imagem "aberta" de mentira, com o formato dado pela extensão do nome
+    * (PNG se não houver) e 1500 bytes de tamanho.
+    */
+   public static ImagemAberta aberta(String nome, Imagem imagem) {
+      return aberta(nome, imagem, 1500);
+   }
+
+   /** Igual a {@link #aberta(String, Imagem)}, com o tamanho informado. */
+   public static ImagemAberta aberta(String nome, Imagem imagem,
+                                     long tamanhoBytes) {
+      return new ImagemAberta(nome,
+                              FormatoImagem.doArquivo(nome)
+                                           .orElse(FormatoImagem.PNG),
+                              tamanhoBytes, imagem);
    }
 
    /** Imagem na memória: o canal alfa existe se algum pixel não for opaco. */

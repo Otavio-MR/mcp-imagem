@@ -303,6 +303,36 @@ class ImageIoLoaderTest {
       }
 
       @Test
+      void cabecalhoQueDeclaraImagemEnormeEhRecusadoSemDecodificar() {
+         // o arquivo tem poucas dezenas de bytes e nem tem pixels, mas o
+         // cabeçalho diz 6000 x 6000 (36 milhões de pixels)
+         Path arquivo = ImagensDeTeste.criarPngSoComCabecalho(
+               pasta, "gigante.png", 6000, 6000);
+
+         assertTrue(arquivo.toFile().length() < 100);
+
+         ImagemMuitoGrandeException ex = assertThrows(
+               ImagemMuitoGrandeException.class,
+               () -> carregador.carregar(arquivo));
+
+         assertTrue(ex.getMessage().contains("6000x6000"), ex.getMessage());
+         assertTrue(ex.getMessage().contains("(36000000)"), ex.getMessage());
+         assertTrue(ex.getMessage().contains("25000000 pixels"),
+                    ex.getMessage());
+      }
+
+      @Test
+      void cabecalhoNoLimiteExatoPassaNaChecagemDeTamanho() {
+         // 5000 x 5000 = 25 milhões, exatamente o limite: passa pelo limite e
+         // só falha depois, porque o arquivo não tem os pixels
+         Path arquivo = ImagensDeTeste.criarPngSoComCabecalho(
+               pasta, "no-limite.png", 5000, 5000);
+
+         assertThrows(ImagemInvalidaException.class,
+                      () -> carregador.carregar(arquivo));
+      }
+
+      @Test
       void limitesPadraoDaAplicacaoSao20MbE25MilhoesDePixels() {
          assertEquals(20L * 1024 * 1024, AppConfig.TAMANHO_MAXIMO_BYTES);
          assertEquals(25_000_000L, AppConfig.PIXELS_MAXIMOS);

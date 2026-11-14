@@ -1,10 +1,15 @@
 package br.edu.ifpr.mcp_imagens.testutil;
 
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.ByteBuffer;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Locale;
+import java.util.zip.CRC32;
 
 import javax.imageio.ImageIO;
 
@@ -64,6 +69,53 @@ public final class ImagensDeTeste {
          imagem.getRaster().setSample(x, 0, 0, amostras[x]);
 
       return gravar(imagem, pasta, nome);
+   }
+
+   /**
+    * Grava um PNG minúsculo que só tem a assinatura, o cabeçalho (IHDR) e o
+    * fim (IEND), mas <b>declara</b> as dimensões informadas. Serve para testar
+    * o limite de pixels sem criar uma imagem enorme: o servidor lê as
+    * dimensões do cabeçalho e recusa antes de decodificar.
+    */
+   public static Path criarPngSoComCabecalho(Path pasta, String nome,
+                                             int largura, int altura) {
+      ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+      DataOutputStream      saida = new DataOutputStream(bytes);
+
+      try {
+         // assinatura de todo PNG
+         saida.write(new byte[] { (byte) 0x89, 'P', 'N', 'G', '\r', '\n',
+                                  0x1A, '\n' });
+         // IHDR: tipo + 13 bytes de dados (largura, altura, 8 bits, RGBA)
+         saida.writeInt(13);
+         byte[] ihdr = new byte[17];
+         ByteBuffer.wrap(ihdr)
+                   .put(new byte[] { 'I', 'H', 'D', 'R' })
+                   .putInt(largura).putInt(altura)
+                   .put((byte) 8).put((byte) 6).put((byte) 0).put((byte) 0)
+                   .put((byte) 0);
+         saida.write(ihdr);
+         saida.writeInt(crc(ihdr));
+         // IEND: sem dados
+         saida.writeInt(0);
+         byte[] iend = { 'I', 'E', 'N', 'D' };
+         saida.write(iend);
+         saida.writeInt(crc(iend));
+
+         Path arquivo = pasta.resolve(nome);
+         Files.write(arquivo, bytes.toByteArray());
+         return arquivo;
+      }
+      catch (IOException ex) {
+         throw new UncheckedIOException(ex);
+      }
+   }
+
+   private static int crc(byte[] dados) {
+      CRC32 crc = new CRC32();
+
+      crc.update(dados);
+      return (int) crc.getValue();
    }
 
    private static BufferedImage nova(String nome, int largura, int altura) {

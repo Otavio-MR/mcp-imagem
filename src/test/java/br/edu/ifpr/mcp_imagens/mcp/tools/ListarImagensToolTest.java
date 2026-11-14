@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 
 import br.edu.ifpr.mcp_imagens.domain.model.FormatoImagem;
 import br.edu.ifpr.mcp_imagens.domain.model.ImagemInfo;
+import br.edu.ifpr.mcp_imagens.domain.model.InformacoesImagem;
 import br.edu.ifpr.mcp_imagens.domain.model.ListaDeImagens;
 import br.edu.ifpr.mcp_imagens.service.InformacoesService;
 import br.edu.ifpr.mcp_imagens.testutil.Resultados;
@@ -22,6 +23,11 @@ class ListarImagensToolTest {
    /** Dublê do serviço com uma lista fixa. */
    record ServicoFixo(ListaDeImagens lista) implements InformacoesService {
       @Override public ListaDeImagens listarImagens() { return lista; }
+
+      @Override
+      public InformacoesImagem obter(String arquivo) {
+         throw new UnsupportedOperationException("este teste só lista");
+      }
    }
 
    private static CallToolResult chamar(ListaDeImagens lista,

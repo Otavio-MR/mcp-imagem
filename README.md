@@ -161,6 +161,46 @@ enviado).
 
 ---
 
+### `obter_informacoes`
+
+Informa as medidas exatas de uma imagem: largura, altura, total de pixels,
+formato, se tem canal alfa (transparência) e o tamanho do arquivo.
+
+| Parâmetro | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `arquivo` | string | sim | nome do arquivo, como mostrado por `listar_imagens` |
+
+Exemplo de chamada: `{"arquivo": "banner.png"}`
+
+```json
+{
+  "arquivo" : "banner.png",
+  "formato" : "PNG",
+  "largura" : 40,
+  "altura" : 20,
+  "totalPixels" : 800,
+  "temCanalAlfa" : true,
+  "tamanhoBytes" : 125,
+  "tamanhoKb" : 1
+}
+```
+
+`tamanhoKb` é arredondado para cima. `temCanalAlfa` vale `true` para PNG e GIF
+gravados com canal alfa, e `false` para JPG, BMP e PNG sem transparência.
+
+Erros específicos:
+
+| Código | Causa |
+|---|---|
+| `IMAGEM_NAO_ENCONTRADA` | o arquivo não existe na pasta (a mensagem lista as imagens disponíveis) |
+| `FORMATO_NAO_SUPORTADO` | o arquivo existe, mas a extensão não é PNG, JPG/JPEG, GIF nem BMP |
+| `IMAGEM_INVALIDA` | o arquivo tem extensão de imagem, mas está corrompido, vazio ou não é uma imagem |
+| `IMAGEM_MUITO_GRANDE` | o arquivo passa de 20 MB ou a imagem de 25 milhões de pixels |
+| `PARAMETRO_INVALIDO` | `arquivo` em branco ou com caminho (`../x.png`, `C:\x.png`, `/etc/passwd`) |
+| `PARAMETRO_AUSENTE` | falta `arquivo` |
+
+---
+
 ### `calcular_contraste`
 
 Calcula a razão de contraste entre a cor do texto e a do fundo pela fórmula do

@@ -11,12 +11,15 @@ import br.edu.ifpr.mcp_imagens.infra.config.CoresNomeadas;
 import br.edu.ifpr.mcp_imagens.infra.config.CorParser;
 import br.edu.ifpr.mcp_imagens.infra.config.TabelaWcag;
 import br.edu.ifpr.mcp_imagens.infra.loader.ImageIoLoader;
+import br.edu.ifpr.mcp_imagens.infra.repository.ImagemRepository;
 import br.edu.ifpr.mcp_imagens.infra.repository.ImagemRepositoryEmDisco;
 import br.edu.ifpr.mcp_imagens.mcp.tools.CalcularContrasteTool;
 import br.edu.ifpr.mcp_imagens.mcp.tools.ListarImagensTool;
+import br.edu.ifpr.mcp_imagens.mcp.tools.ObterInformacoesTool;
 import br.edu.ifpr.mcp_imagens.mcp.utils.McpToolDefinition;
 import br.edu.ifpr.mcp_imagens.mcp.utils.ToolRegistry;
 import br.edu.ifpr.mcp_imagens.service.CalculadoraDeContrastePadrao;
+import br.edu.ifpr.mcp_imagens.service.InformacoesService;
 import br.edu.ifpr.mcp_imagens.service.InformacoesServicePadrao;
 import io.modelcontextprotocol.json.jackson3.JacksonMcpJsonMapper;
 import io.modelcontextprotocol.server.McpServer;
@@ -52,11 +55,17 @@ public class McpImagensServer {
       TabelaWcag           wcag        = carregador.objeto("criterios-wcag",
                                                            TabelaWcag.class);
 
+      ImagemRepository     repositorio = new ImagemRepositoryEmDisco(
+                                      config.pastaImagens(),
+                                      new ImageIoLoader(
+                                            config.tamanhoMaximoBytes(),
+                                            config.pixelsMaximos()));
+      InformacoesService   informacoes = new InformacoesServicePadrao(
+                                                                 repositorio);
+
       return List.of(
-         new ListarImagensTool(new InformacoesServicePadrao(
-               new ImagemRepositoryEmDisco(config.pastaImagens(),
-                     new ImageIoLoader(config.tamanhoMaximoBytes(),
-                                       config.pixelsMaximos())))),
+         new ListarImagensTool(informacoes),
+         new ObterInformacoesTool(informacoes),
          new CalcularContrasteTool(parser,
                new CalculadoraDeContrastePadrao(wcag.criterios())));
    }
