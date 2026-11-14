@@ -9,6 +9,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 import br.edu.ifpr.mcp_imagens.domain.model.FormatoImagem;
+import br.edu.ifpr.mcp_imagens.domain.model.ImagemAberta;
 import br.edu.ifpr.mcp_imagens.domain.model.ImagemInfo;
 import br.edu.ifpr.mcp_imagens.domain.model.ListaDeImagens;
 import br.edu.ifpr.mcp_imagens.infra.repository.ImagemRepository;
@@ -18,6 +19,11 @@ class InformacoesServicePadraoTest {
    record RepositorioFixo(Path pasta, List<ImagemInfo> imagens)
           implements ImagemRepository {
       @Override public List<ImagemInfo> listar() { return imagens; }
+
+      @Override
+      public ImagemAberta abrir(String nome) {
+         throw new UnsupportedOperationException("este serviço só lista");
+      }
    }
 
    @Test

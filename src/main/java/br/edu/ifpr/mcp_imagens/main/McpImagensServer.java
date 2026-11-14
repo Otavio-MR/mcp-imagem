@@ -10,6 +10,7 @@ import br.edu.ifpr.mcp_imagens.infra.config.CarregadorDeRecursos;
 import br.edu.ifpr.mcp_imagens.infra.config.CoresNomeadas;
 import br.edu.ifpr.mcp_imagens.infra.config.CorParser;
 import br.edu.ifpr.mcp_imagens.infra.config.TabelaWcag;
+import br.edu.ifpr.mcp_imagens.infra.loader.ImageIoLoader;
 import br.edu.ifpr.mcp_imagens.infra.repository.ImagemRepositoryEmDisco;
 import br.edu.ifpr.mcp_imagens.mcp.tools.CalcularContrasteTool;
 import br.edu.ifpr.mcp_imagens.mcp.tools.ListarImagensTool;
@@ -53,7 +54,9 @@ public class McpImagensServer {
 
       return List.of(
          new ListarImagensTool(new InformacoesServicePadrao(
-               new ImagemRepositoryEmDisco(config.pastaImagens()))),
+               new ImagemRepositoryEmDisco(config.pastaImagens(),
+                     new ImageIoLoader(config.tamanhoMaximoBytes(),
+                                       config.pixelsMaximos())))),
          new CalcularContrasteTool(parser,
                new CalculadoraDeContrastePadrao(wcag.criterios())));
    }
