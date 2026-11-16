@@ -149,7 +149,12 @@ public class McpImagensServer {
                       // ferramentas (ArgumentReader), que devolvem os códigos
                       // de erro padronizados (PARAMETRO_AUSENTE, ...); a
                       // validação do SDK responderia antes, com outro formato
-                      .validateToolInputs(false);
+                      .validateToolInputs(false)
+                      // executa cada chamada na mesma thread que lê a entrada,
+                      // uma de cada vez; sem isso, duas chamadas simultâneas
+                      // podem escrever a resposta ao mesmo tempo e o SDK
+                      // perde uma delas ("Failed to enqueue message")
+                      .immediateExecution(true);
    }
 
    public static void main(String[] args) throws Exception {

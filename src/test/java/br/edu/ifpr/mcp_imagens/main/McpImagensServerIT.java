@@ -6,7 +6,11 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
@@ -14,6 +18,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.AfterAll;
@@ -212,6 +218,69 @@ class McpImagensServerIT {
                           "calcular_contraste"),
                    client.listTools().tools().stream().map(Tool::name)
                          .collect(Collectors.toSet()));
+   }
+
+   /**
+    * O SDK perdia respostas quando duas chamadas eram tratadas ao mesmo
+    * tempo; o servidor executa uma de cada vez para evitar isso. O teste
+    * escreve várias chamadas de uma vez na entrada de um servidor próprio
+    * (o cliente do SDK não permite chamadas simultâneas) e confere que todas
+    * são respondidas.
+    */
+   @Test
+   void chamadasEmSequenciaRapidaRecebemTodasAsRespostas() throws Exception {
+      int chamadas = 16;
+      Process servidor = new ProcessBuilder("java", "-jar",
+            new File(SERVER_PATH).getAbsolutePath())
+            .redirectError(ProcessBuilder.Redirect.DISCARD)
+            .start();
+
+      try {
+         servidor.getOutputStream().write(entradaComChamadas(chamadas)
+               .getBytes(StandardCharsets.UTF_8));
+         servidor.getOutputStream().flush();
+
+         BufferedReader saida = new BufferedReader(new InputStreamReader(
+               servidor.getInputStream(), StandardCharsets.UTF_8));
+         // a primeira resposta é a da inicialização
+         CompletableFuture<Integer> respostas = CompletableFuture.supplyAsync(
+               () -> contarRespostas(saida, chamadas + 1));
+
+         assertEquals(chamadas + 1, respostas.get(60, TimeUnit.SECONDS));
+      }
+      finally {
+         servidor.destroyForcibly();
+      }
+   }
+
+   private static String entradaComChamadas(int chamadas) {
+      StringBuilder linhas = new StringBuilder();
+
+      linhas.append("{\"jsonrpc\":\"2.0\",\"id\":0,\"method\":\"initialize\"," +
+                    "\"params\":{\"protocolVersion\":\"2025-11-25\"," +
+                    "\"capabilities\":{},\"clientInfo\":{\"name\":\"it\"," +
+                    "\"version\":\"1\"}}}\n");
+      linhas.append("{\"jsonrpc\":\"2.0\",\"method\":" +
+                    "\"notifications/initialized\"}\n");
+      for (int i = 1; i <= chamadas; i++)
+         linhas.append("{\"jsonrpc\":\"2.0\",\"id\":" + i + ",\"method\":" +
+                       "\"tools/call\",\"params\":{\"name\":\"listar_imagens\"," +
+                       "\"arguments\":{}}}\n");
+      return linhas.toString();
+   }
+
+   /** Lê linhas de resposta até ter {@code esperadas} ou a saída acabar. */
+   private static int contarRespostas(BufferedReader saida, int esperadas) {
+      int lidas = 0;
+
+      try {
+         while (lidas < esperadas && saida.readLine() != null)
+            lidas++;
+      }
+      catch (IOException e) {
+         // a saída foi fechada: devolve o que foi lido
+      }
+      return lidas;
    }
 
    @Nested

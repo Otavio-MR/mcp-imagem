@@ -10,13 +10,10 @@ e UX que querem checar imagens, paletas e contraste (critérios WCAG).
 O servidor **não chama nenhuma IA**: ele mede e calcula. A interpretação ("isso
 é um problema de acessibilidade?") fica com a IA.
 
-> **Status:** em construção. Este arquivo documenta, por enquanto, as onze
-> ferramentas do servidor (`listar_imagens`, `obter_informacoes`,
-> `contar_pixels_da_cor`, `cores_dominantes`, `proporcao_claro_escuro`,
-> `contar_pixels_transparentes`, `histograma_de_brilho`, `comparar_imagens`,
-> `verificar_paleta`, `contraste_das_cores_dominantes` e `calcular_contraste`),
-> os resources, os prompts e o cliente. O Claude Desktop e o MCP Inspector
-> serão acrescentados nas próximas fases.
+> **Status:** em construção. Este arquivo documenta as onze ferramentas do
+> servidor, os resources, os prompts, o cliente, as imagens de exemplo e a
+> configuração do Claude Desktop e do MCP Inspector. Faltam a revisão final e a
+> seção de limitações conhecidas.
 
 ## Convenções
 
@@ -879,3 +876,170 @@ O código do cliente está dividido em classes pequenas, no pacote `client`:
 
 Os testes de integração geram as próprias imagens, com o `ImageIO`, em uma
 pasta temporária, e sobem o JAR do servidor com `IMG_DIR` apontando para ela.
+
+### No Eclipse
+
+1. **File, Import, Maven, Existing Maven Projects** e escolha a pasta do projeto.
+2. Clique com o botão direito no projeto, **Run As, Maven build...**, e informe:
+   * servidor com testes: **Goals** `clean verify`, **Profiles** `server`;
+   * servidor sem testes: **Goals** `clean package -DskipTests`, **Profiles** `server`;
+   * cliente: **Goals** `clean package -DskipTests`, **Profiles** `client`.
+3. Para só rodar os testes unitários: botão direito no projeto, **Run As, JUnit Test**
+   (ou **Maven test**).
+
+O Eclipse precisa estar configurado com um JDK 25 (**Window, Preferences, Java,
+Installed JREs**).
+
+## Imagens de exemplo
+
+A pasta `imagens/` do repositório traz quatro imagens pequenas e originais
+para testar o servidor sem precisar de arquivos próprios. Elas são **geradas**
+pela classe `GeradorDeImagensDeExemplo` (em `src/test/java`, pacote
+`testutil`), desenhadas com Java 2D e sem suavização de bordas, então cada
+pixel é uma das poucas cores da paleta e os números das ferramentas são fáceis
+de conferir.
+
+| Arquivo | Tamanho | O que é |
+|---|---|---|
+| `banner.png` | 400x120 | texto "Promoção de Verão" claro (`#F5F1E8`) sobre fundo escuro (`#1B2A41`) e uma barra laranja (`#E4572E`) |
+| `icone.png` | 64x64 | ícone de "certo" em um círculo azul, com fundo **transparente** e um anel **semitransparente** |
+| `tela-v1.png` | 320x200 | tela de um aplicativo: cabeçalho, texto, um texto de apoio em cinza claro (`#AAAAAA`, contraste baixo) e um botão azul |
+| `tela-v2.png` | 320x200 | a mesma tela com o botão verde e o texto de apoio em cinza mais escuro (`#767676`), para testar `comparar_imagens` |
+
+Para gerar de novo (por exemplo, depois de mudar o desenho):
+
+```bash
+mvn test-compile
+java -cp target/test-classes br.edu.ifpr.mcp_imagens.testutil.GeradorDeImagensDeExemplo imagens
+```
+
+No Eclipse, basta executar a classe (**Run As, Java Application**); o
+argumento é a pasta de saída e o padrão é `imagens`.
+
+Para analisar uma imagem sua, **copie o arquivo para a pasta de imagens** (a
+pasta `imagens/` do projeto ou a que você configurar em `IMG_DIR`) e cite o
+nome dele.
+
+## Claude Desktop
+
+> **Aviso importante:** o servidor lê as imagens **da pasta configurada**, e
+> não os anexos da conversa. Para o Claude analisar uma imagem, copie o arquivo
+> para a pasta `IMG_DIR` e cite o nome dele (por exemplo, "analise o
+> `banner.png`"). Se a imagem não estiver lá, o servidor devolve
+> `IMAGEM_NAO_ENCONTRADA` com a lista do que existe na pasta.
+
+1. Gere o servidor: `mvn clean package -Pserver -DskipTests` (cria
+   `server/mcp_imagens_server.jar` e `server/libs`).
+2. No Claude Desktop, abra **Settings, Developer, Edit Config**. O arquivo é o
+   `claude_desktop_config.json`:
+   * Windows: `%APPDATA%\Claude\claude_desktop_config.json`
+   * macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+3. Acrescente o servidor em `mcpServers` (ajuste os caminhos para o seu
+   computador).
+
+   Windows (as barras invertidas são duplicadas no JSON):
+
+   ```json
+   {
+     "mcpServers": {
+       "mcp-imagens": {
+         "command": "java",
+         "args": [
+           "-jar",
+           "C:\projetos\mcp_imagens\server\mcp_imagens_server.jar"
+         ],
+         "env": {
+           "IMG_DIR": "C:\projetos\mcp_imagens\imagens"
+         }
+       }
+     }
+   }
+   ```
+
+   macOS:
+
+   ```json
+   {
+     "mcpServers": {
+       "mcp-imagens": {
+         "command": "java",
+         "args": [
+           "-jar",
+           "/Users/voce/projetos/mcp_imagens/server/mcp_imagens_server.jar"
+         ],
+         "env": {
+           "IMG_DIR": "/Users/voce/projetos/mcp_imagens/imagens"
+         }
+       }
+     }
+   }
+   ```
+
+4. **Encerre completamente o Claude Desktop** antes de abrir de novo (no
+   Windows, feche também pelo ícone da bandeja; no macOS, `Cmd+Q`). Fechar só
+   a janela não recarrega a configuração.
+5. Ao abrir, o servidor `mcp-imagens` deve aparecer na lista de ferramentas da
+   conversa, com as 11 ferramentas. Os resources e os prompts aparecem no menu
+   de anexos (**+**) da conversa.
+
+O comando `java` precisa estar no `PATH` e ser o JDK 25. Se não estiver, use o
+caminho completo do executável em `command` (por exemplo,
+`C:\Program Files\Java\jdk-25\bin\java.exe`). Para ver os erros do
+servidor, abra os logs do Claude Desktop (**Settings, Developer**; o servidor
+escreve o log no stderr, nunca no canal do protocolo).
+
+### Perguntas para experimentar
+
+Com as imagens de exemplo na pasta `IMG_DIR`:
+
+| Pergunta | O que esperar |
+|---|---|
+| "Quais imagens estão disponíveis?" | `listar_imagens`: as quatro imagens de exemplo |
+| "Qual o contraste entre #777777 e branco? Passa no WCAG AA?" | `calcular_contraste`: razão 4,48; falha no AA de texto normal e passa no AA de texto grande |
+| "Quantos pixels do `icone.png` são transparentes?" | `contar_pixels_transparentes`: 963 transparentes (23,51%), 1343 semitransparentes e 1790 opacos |
+| "As telas `tela-v1.png` e `tela-v2.png` mudaram? Onde?" | `comparar_imagens`: 4418 pixels diferentes (6,9%), na região de (16, 79) a (135, 165) |
+| "Quais são as cores dominantes do `banner.png`? O texto passa no contraste?" | `cores_dominantes` e `contraste_das_cores_dominantes`: `#1B2A41` (91,66%), `#F5F1E8` (6,84%) e `#E4572E` (1,5%); razão 12,81, passa em todos os critérios |
+| "A `tela-v1.png` segue a paleta #FFFFFF, #1F3A5F, #333333, #2E86AB?" | `verificar_paleta`: 99,54% dentro da paleta; fora dela só o `#AAAAAA` (292 pixels), o texto de apoio |
+| "Use o prompt `analisar_acessibilidade_de_cores` para a `tela-v1.png`" | o Claude segue o roteiro do prompt, medindo antes de concluir |
+
+## MCP Inspector
+
+O [MCP Inspector](https://modelcontextprotocol.io/docs/tools/inspector) é uma
+interface web para testar servidores MCP. O projeto traz um `Dockerfile` (Node
+mais Java e o Inspector) e um `compose.yaml` que sobem o Inspector já
+executando o servidor, com a pasta `imagens/` montada e `IMG_DIR` configurada.
+
+Pré-requisito: Docker Desktop.
+
+```bash
+mvn clean package -Pserver -DskipTests
+docker compose up -d
+```
+
+Depois abra <http://127.0.0.1:6274>. O Inspector inicia o servidor
+(`java -jar /opt/mcp/server/mcp_imagens_server.jar`) por STDIO. Se ele pedir um
+token de acesso, ele aparece no log: `docker compose logs mcp-inspector`. Nas
+abas **Tools**, **Resources** e **Prompts** dá para listar, chamar e ler tudo o
+que o servidor oferece. Para encerrar: `docker compose down`.
+
+O `compose.yaml` monta `./server` e `./imagens` em modo somente leitura
+(`:ro`); para testar com outras imagens, coloque-as na pasta `imagens/`.
+
+## Outros assistentes de IA
+
+Qualquer cliente MCP com transporte STDIO funciona com a mesma configuração do
+Claude Desktop: o comando `java -jar .../mcp_imagens_server.jar` e a variável
+de ambiente `IMG_DIR`. O cliente de console deste projeto (ver "Cliente MCP")
+é um exemplo.
+
+## Testes manuais
+
+Além dos testes automatizados (`mvn clean verify -Pserver`), o servidor foi
+exercitado nestes clientes:
+
+| Cliente | Resultado |
+|---|---|
+| Cliente de console deste projeto (`mcp_imagens_client.jar`) | funciona: lista as 11 ferramentas, pede os parâmetros pelo schema e executa; os comandos `recursos`, `ler`, `prompts` e `prompt` funcionam |
+| Chamadas JSON-RPC diretas pela entrada padrão do servidor (STDIO) | funciona: as 11 ferramentas respondem com as imagens de `imagens/`, também com várias chamadas enviadas em sequência rápida |
+| Claude Desktop | a registrar após o teste (veja o passo a passo acima) |
+| MCP Inspector (Docker) | a registrar após o teste (veja o passo a passo acima) |
