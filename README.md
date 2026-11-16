@@ -245,6 +245,64 @@ Erros nos parâmetros são verificados antes de abrir a imagem.
 
 ---
 
+### `cores_dominantes`
+
+Lista as cores que mais aparecem na imagem, com a quantidade exata de pixels e
+o percentual de cada uma. Cores parecidas são agrupadas: cada canal (vermelho,
+verde, azul) é dividido em faixas de `passo` valores, e pixels cujos três
+canais caem nas mesmas faixas formam um grupo.
+
+| Parâmetro | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `arquivo` | string | sim | nome do arquivo, como mostrado por `listar_imagens` |
+| `quantidade` | inteiro 1 a 20 | não (padrão 5) | quantas cores devolver |
+| `passo` | inteiro 1 a 128 | não (padrão 32) | tamanho da faixa de cada canal; 1 = cores exatas, maior = grupos mais amplos |
+| `ignorar_transparentes` | booleano | não (padrão `true`) | se `true`, pixels com alfa 0 não entram na conta |
+
+Exemplo de chamada: `{"arquivo": "vermelho-branco.png", "quantidade": 2, "passo": 1}`
+
+```json
+{
+  "arquivo" : "vermelho-branco.png",
+  "passo" : 1,
+  "ignorarTransparentes" : true,
+  "totalConsiderado" : 100,
+  "gruposDistintos" : 2,
+  "cores" : [ {
+    "cor" : "#FFFFFF",
+    "quantidade" : 70,
+    "percentual" : 70.00
+  }, {
+    "cor" : "#FF0000",
+    "quantidade" : 30,
+    "percentual" : 30.00
+  } ]
+}
+```
+
+Como ler o resultado:
+
+- Com `passo` maior que 1, a `cor` de cada grupo é o **centro da faixa** em
+  cada canal (no máximo 255), e não uma cor que exista na imagem. Por exemplo,
+  com passo 32 o branco aparece como `#F0F0F0`. Use `passo` 1 para obter as
+  cores exatas.
+- `gruposDistintos` conta todos os grupos da imagem, mesmo os que não couberam
+  em `quantidade`.
+- Os grupos vêm do mais frequente para o menos frequente; em empate, vem
+  primeiro a cor de menor valor hexadecimal.
+- Se a imagem não tem pixels considerados (toda transparente), `cores` vem
+  vazia e `totalConsiderado` é 0.
+
+Erros específicos:
+
+| Código | Causa |
+|---|---|
+| `PARAMETRO_INVALIDO` | `quantidade` fora de 1 a 20, `passo` fora de 1 a 128, valor não inteiro, `ignorar_transparentes` não booleano ou `arquivo` inválido |
+| `PARAMETRO_AUSENTE` | falta `arquivo` |
+| `IMAGEM_NAO_ENCONTRADA`, `FORMATO_NAO_SUPORTADO`, `IMAGEM_INVALIDA`, `IMAGEM_MUITO_GRANDE` | iguais aos de `obter_informacoes` |
+
+---
+
 ### `calcular_contraste`
 
 Calcula a razão de contraste entre a cor do texto e a do fundo pela fórmula do

@@ -194,7 +194,8 @@ class McpImagensServerIT {
    @Test
    void servidorDisponibilizaAsFerramentasEsperadas() {
       assertEquals(Set.of("listar_imagens", "obter_informacoes",
-                          "contar_pixels_da_cor", "calcular_contraste"),
+                          "contar_pixels_da_cor", "cores_dominantes",
+                          "calcular_contraste"),
                    client.listTools().tools().stream().map(Tool::name)
                          .collect(Collectors.toSet()));
    }
@@ -448,6 +449,77 @@ class McpImagensServerIT {
          assertErro("IMAGEM_INVALIDA",
                     chamar("contar_pixels_da_cor",
                            Map.of("arquivo", "falsa.png", "cor", "#000")));
+      }
+   }
+
+   @Nested
+   class CoresDominantes {
+      private JsonNode dominantes(Map<String, Object> argumentos) {
+         CallToolResult resultado = chamar("cores_dominantes", argumentos);
+
+         assertFalse(resultado.isError(), Resultados.texto(resultado));
+         return Resultados.json(resultado);
+      }
+
+      @Test
+      void estaDisponivelComDescricaoESchema() {
+         assertFerramentaDisponivel("cores_dominantes");
+         assertDescricaoAvisaDaPasta("cores_dominantes");
+         assertEquals(List.of("arquivo"),
+                      ferramenta("cores_dominantes").inputSchema()
+                                                    .get("required"));
+      }
+
+      @Test
+      void coresExatasComPassoUm() {
+         JsonNode json  = dominantes(Map.of("arquivo", "vermelho-branco.png",
+                                            "passo", 1));
+         JsonNode lista = json.get("cores");
+
+         assertEquals(100, json.get("totalConsiderado").asLong());
+         assertEquals(2, json.get("gruposDistintos").asInt());
+         assertEquals("#FFFFFF", lista.get(0).get("cor").asString());
+         assertEquals(70, lista.get(0).get("quantidade").asLong());
+         assertEquals("#FF0000", lista.get(1).get("cor").asString());
+         assertEquals(30, lista.get(1).get("quantidade").asLong());
+      }
+
+      @Test
+      void passoAgrupaOPixelQuaseVermelho() {
+         assertEquals(3, dominantes(Map.of("arquivo", "quase-vermelho.png",
+                                           "passo", 1))
+                             .get("gruposDistintos").asInt());
+         assertEquals(2, dominantes(Map.of("arquivo", "quase-vermelho.png"))
+                             .get("gruposDistintos").asInt());
+      }
+
+      @Test
+      void quantidadeLimitaALista() {
+         assertEquals(1, dominantes(Map.of("arquivo", "vermelho-branco.png",
+                                           "quantidade", 1))
+                             .get("cores").size());
+      }
+
+      @Test
+      void transparentesSaoIgnoradosPorPadrao() {
+         assertEquals(2, dominantes(Map.of("arquivo", "alfas.png"))
+                             .get("totalConsiderado").asLong());
+      }
+
+      @Test
+      void passoForaDaFaixa() {
+         assertErro("PARAMETRO_INVALIDO",
+                    chamar("cores_dominantes",
+                           Map.of("arquivo", "banner.png", "passo", 129)));
+      }
+
+      @Test
+      void errosDeArquivo() {
+         assertErro("PARAMETRO_AUSENTE", chamar("cores_dominantes", Map.of()));
+         assertErro("IMAGEM_NAO_ENCONTRADA",
+                    chamar("cores_dominantes", Map.of("arquivo", "nada.png")));
+         assertErro("IMAGEM_INVALIDA",
+                    chamar("cores_dominantes", Map.of("arquivo", "falsa.png")));
       }
    }
 
