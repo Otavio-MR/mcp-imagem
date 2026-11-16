@@ -3,6 +3,7 @@ package br.edu.ifpr.mcp_imagens.main;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
@@ -31,6 +32,15 @@ import io.modelcontextprotocol.client.transport.StdioClientTransport;
 import io.modelcontextprotocol.json.jackson3.JacksonMcpJsonMapper;
 import io.modelcontextprotocol.spec.McpSchema.CallToolRequest;
 import io.modelcontextprotocol.spec.McpSchema.CallToolResult;
+import io.modelcontextprotocol.spec.McpSchema.GetPromptRequest;
+import io.modelcontextprotocol.spec.McpSchema.GetPromptResult;
+import io.modelcontextprotocol.spec.McpSchema.Prompt;
+import io.modelcontextprotocol.spec.McpSchema.PromptArgument;
+import io.modelcontextprotocol.spec.McpSchema.ReadResourceRequest;
+import io.modelcontextprotocol.spec.McpSchema.ReadResourceResult;
+import io.modelcontextprotocol.spec.McpSchema.Resource;
+import io.modelcontextprotocol.spec.McpSchema.TextContent;
+import io.modelcontextprotocol.spec.McpSchema.TextResourceContents;
 import io.modelcontextprotocol.spec.McpSchema.Tool;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
@@ -200,6 +210,139 @@ class McpImagensServerIT {
                           "comparar_imagens", "calcular_contraste"),
                    client.listTools().tools().stream().map(Tool::name)
                          .collect(Collectors.toSet()));
+   }
+
+   @Nested
+   class ResourcesEPrompts {
+      private JsonNode lerResource(String uri) throws Exception {
+         ReadResourceResult resultado = client.readResource(
+                                                new ReadResourceRequest(uri));
+         TextResourceContents conteudo = (TextResourceContents)
+                                               resultado.contents().get(0);
+
+         assertEquals(uri, conteudo.uri());
+         assertEquals("application/json", conteudo.mimeType());
+         return new JsonMapper().readTree(conteudo.text());
+      }
+
+      private String textoDoPrompt(String nome, Map<String, Object> args) {
+         GetPromptResult resultado = client.getPrompt(
+                                           new GetPromptRequest(nome, args));
+
+         assertEquals(1, resultado.messages().size());
+         return ((TextContent) resultado.messages().get(0).content()).text();
+      }
+
+      @Test
+      void listaOsTresResources() {
+         List<Resource> resources = client.listResources().resources();
+
+         assertEquals(Set.of("imagens://cores-nomeadas",
+                             "imagens://criterios-wcag", "imagens://imagens"),
+                      resources.stream().map(Resource::uri)
+                               .collect(Collectors.toSet()));
+         assertTrue(resources.stream().allMatch(
+               r -> r.description() != null && !r.description().isBlank() &&
+                    "application/json".equals(r.mimeType())));
+      }
+
+      @Test
+      void leOsCoresNomeadas() throws Exception {
+         JsonNode json = lerResource("imagens://cores-nomeadas");
+
+         assertEquals("#FF0000", json.get("cores").get("vermelho").asString());
+         assertEquals("#008000", json.get("cores").get("verde").asString());
+      }
+
+      @Test
+      void leOsCriteriosWcag() throws Exception {
+         JsonNode criterios = lerResource("imagens://criterios-wcag")
+                                    .get("criterios");
+
+         assertEquals(5, criterios.size());
+         assertEquals(7.0, criterios.get(2).get("limiar").asDouble(), 0);
+      }
+
+      @Test
+      void leAsImagensDaPastaComAMesmaListaDaFerramenta() throws Exception {
+         JsonNode json = lerResource("imagens://imagens");
+
+         assertEquals(IMAGENS.size(), json.get("total").asInt());
+         assertEquals(List.copyOf(IMAGENS.keySet()),
+                      json.get("imagens").valueStream()
+                          .map(i -> i.get("nome").asString()).toList());
+         assertEquals(Resultados.json(chamar("listar_imagens", Map.of())),
+                      json);
+      }
+
+      @Test
+      void resourceInexistenteDaErro() {
+         assertThrows(RuntimeException.class,
+                      () -> client.readResource(
+                            new ReadResourceRequest("imagens://nada")));
+      }
+
+      @Test
+      void listaOsDoisPrompts() {
+         List<Prompt> prompts = client.listPrompts().prompts();
+
+         assertEquals(Set.of("analisar_acessibilidade_de_cores",
+                             "descrever_composicao_de_cores"),
+                      prompts.stream().map(Prompt::name)
+                             .collect(Collectors.toSet()));
+         assertTrue(prompts.stream().allMatch(
+               p -> p.description() != null && !p.description().isBlank()));
+      }
+
+      @Test
+      void promptsDeclaramSeusArgumentos() {
+         Map<String, Prompt> porNome = client.listPrompts().prompts().stream()
+               .collect(Collectors.toMap(Prompt::name, p -> p));
+         Prompt descrever = porNome.get("descrever_composicao_de_cores");
+
+         assertEquals(List.of("arquivo"),
+               porNome.get("analisar_acessibilidade_de_cores").arguments()
+                      .stream().map(PromptArgument::name).toList());
+         assertEquals(List.of("arquivo", "quantidade"),
+               descrever.arguments().stream().map(PromptArgument::name)
+                        .toList());
+         assertTrue(descrever.arguments().get(0).required());
+         assertFalse(descrever.arguments().get(1).required());
+      }
+
+      @Test
+      void obtemOPromptDeAcessibilidade() {
+         String texto = textoDoPrompt("analisar_acessibilidade_de_cores",
+                                      Map.of("arquivo", "banner.png"));
+
+         assertTrue(texto.contains("'banner.png'"), texto);
+         assertTrue(texto.contains("calcular_contraste"), texto);
+      }
+
+      @Test
+      void obtemOPromptDeComposicaoComQuantidade() {
+         String texto = textoDoPrompt("descrever_composicao_de_cores",
+               Map.of("arquivo", "foto.jpg", "quantidade", "7"));
+
+         assertTrue(texto.contains("quantidade 7"), texto);
+         assertTrue(texto.contains("proporcao_claro_escuro"), texto);
+      }
+
+      @Test
+      void promptSemArquivoOuComQuantidadeInvalidaDaErro() {
+         assertThrows(RuntimeException.class,
+                      () -> textoDoPrompt("analisar_acessibilidade_de_cores",
+                                          Map.of()));
+         assertThrows(RuntimeException.class,
+                      () -> textoDoPrompt("descrever_composicao_de_cores",
+                            Map.of("arquivo", "a.png", "quantidade", "99")));
+      }
+
+      @Test
+      void promptInexistenteDaErro() {
+         assertThrows(RuntimeException.class,
+                      () -> textoDoPrompt("nao_existe", Map.of()));
+      }
    }
 
    @Nested

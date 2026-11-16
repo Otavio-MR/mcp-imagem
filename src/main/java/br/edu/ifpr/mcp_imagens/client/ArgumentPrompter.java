@@ -1,11 +1,14 @@
 package br.edu.ifpr.mcp_imagens.client;
 
 import java.io.PrintStream;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 
+import io.modelcontextprotocol.spec.McpSchema.Prompt;
+import io.modelcontextprotocol.spec.McpSchema.PromptArgument;
 import io.modelcontextprotocol.spec.McpSchema.Tool;
 
 /**
@@ -30,8 +33,30 @@ public class ArgumentPrompter {
     * não entram no resultado (o servidor usa o valor padrão).
     */
    public Map<String, Object> pedir(Tool ferramenta) {
+      return pedir(ferramenta.inputSchema());
+   }
+
+   /**
+    * Pede os argumentos de um prompt. Todos são texto; o que muda é só se são
+    * obrigatórios.
+    */
+   public Map<String, Object> pedir(Prompt prompt) {
+      Map<String, Object> propriedades = new LinkedHashMap<>();
+      List<String>        obrigatorios = new ArrayList<>();
+
+      for (PromptArgument argumento : prompt.arguments()) {
+         propriedades.put(argumento.name(), Map.of(
+               "type", "string",
+               "description", String.valueOf(argumento.description())));
+         if (Boolean.TRUE.equals(argumento.required()))
+            obrigatorios.add(argumento.name());
+      }
+      return pedir(Map.of("properties", propriedades,
+                          "required", obrigatorios));
+   }
+
+   private Map<String, Object> pedir(Map<?, ?> schema) {
       Map<String, Object> argumentos   = new LinkedHashMap<>();
-      Map<?, ?>           schema       = ferramenta.inputSchema();
       Map<?, ?>           propriedades = mapaEm(schema, "properties");
 
       if (propriedades.isEmpty())

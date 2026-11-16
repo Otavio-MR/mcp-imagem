@@ -40,8 +40,10 @@ class MenuConsoleTest {
       assertTrue(texto().contains(" 2 - Calcular_Contraste: Contraste."),
                  texto());
       assertTrue(!texto().contains("Segunda frase"), texto());
-      assertTrue(texto().contains("listar - atualizar"), texto());
-      assertTrue(texto().contains("sair   - encerrar"), texto());
+      assertTrue(texto().contains("listar          - atualizar"), texto());
+      assertTrue(texto().contains("recursos        - listar"), texto());
+      assertTrue(texto().contains("prompt <n/nome>  - montar"), texto());
+      assertTrue(texto().contains("sair            - encerrar"), texto());
    }
 
    @Test

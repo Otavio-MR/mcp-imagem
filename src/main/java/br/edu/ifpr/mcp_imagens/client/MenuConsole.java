@@ -34,8 +34,12 @@ public class MenuConsole {
       }
       saida.println();
       saida.println("Digite o número ou o nome da ferramenta. Comandos:");
-      saida.println(" listar - atualizar lista de ferramentas");
-      saida.println(" sair   - encerrar o cliente");
+      saida.println(" listar          - atualizar lista de ferramentas");
+      saida.println(" recursos        - listar os resources do servidor");
+      saida.println(" ler <n/endereço> - mostrar o conteúdo de um resource");
+      saida.println(" prompts         - listar os prompts do servidor");
+      saida.println(" prompt <n/nome>  - montar um prompt");
+      saida.println(" sair            - encerrar o cliente");
       saida.println();
    }
 

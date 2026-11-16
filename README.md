@@ -14,8 +14,8 @@ O servidor **não chama nenhuma IA**: ele mede e calcula. A interpretação ("is
 > ferramentas de análise do servidor (`listar_imagens`, `obter_informacoes`,
 > `contar_pixels_da_cor`, `cores_dominantes`, `proporcao_claro_escuro`,
 > `contar_pixels_transparentes`, `histograma_de_brilho`, `comparar_imagens` e
-> `calcular_contraste`) e o cliente. Resources, prompts, o Claude Desktop e o
-> MCP Inspector serão acrescentados nas próximas fases.
+> `calcular_contraste`), os resources, os prompts e o cliente. O Claude Desktop e
+> o MCP Inspector serão acrescentados nas próximas fases.
 
 ## Convenções
 
@@ -593,6 +593,89 @@ Erros específicos:
 
 ---
 
+## Resources
+
+Resources são conteúdos que o cliente (ou a IA) pode **ler pelo endereço**,
+sem chamar uma ferramenta. Todos devolvem JSON (`application/json`) em um único
+conteúdo de texto e não recebem parâmetros.
+
+| Endereço | O que devolve |
+|---|---|
+| `imagens://cores-nomeadas` | o dicionário de nomes de cores em português para `#RRGGBB`, o mesmo que as ferramentas usam para entender `vermelho`, `azul-marinho` etc. |
+| `imagens://criterios-wcag` | a tabela dos limiares de contraste do WCAG (AA e AAA, texto normal e grande, componentes de interface), a mesma que `calcular_contraste` usa |
+| `imagens://imagens` | as imagens da pasta de imagens, a mesma lista de `listar_imagens` |
+
+Exemplo de leitura de `imagens://criterios-wcag` (resumido):
+
+```json
+{
+  "fonte" : "WCAG 2.x: critérios 1.4.3 (Contraste mínimo, nível AA), ...",
+  "criterios" : [ {
+    "id" : "aa_texto_normal",
+    "nome" : "AA texto normal",
+    "limiar" : 4.5,
+    "descricao" : "Texto comum, abaixo de 18 pt (24 px), ..."
+  }, ... ]
+}
+```
+
+Erros possíveis:
+
+| Situação | Resultado |
+|---|---|
+| endereço que não existe (por exemplo `imagens://nada`) | erro do protocolo: o servidor responde que o resource não foi encontrado |
+| `imagens://imagens` e a pasta de imagens não pode ser lida | erro do protocolo com a mensagem do problema |
+
+Os dois primeiros resources leem arquivos que fazem parte do próprio servidor
+(`src/main/resources/imagens/*.json`), por isso não falham.
+
+## Prompts
+
+Prompts são modelos de instrução que o cliente pode pedir ao servidor. Cada um
+recebe argumentos e devolve **uma mensagem de usuário** com a instrução pronta,
+que orienta a IA a usar as ferramentas certas e a interpretar os números sem
+inventar nada. O servidor não chama nenhuma IA: ele só monta o texto.
+
+### `analisar_acessibilidade_de_cores`
+
+Instrui a IA a medir as cores de uma imagem e interpretar o contraste pelos
+critérios do WCAG.
+
+| Argumento | Obrigatório | Descrição |
+|---|---|---|
+| `arquivo` | sim | nome do arquivo da imagem, como mostrado por `listar_imagens` |
+
+A instrução pede, em ordem: chamar `cores_dominantes`, chamar
+`calcular_contraste` para os pares de cores (a mais frequente como fundo),
+interpretar os vereditos do WCAG (consultando `imagens://criterios-wcag`) e
+recomendar ajustes, confirmando-os com `calcular_contraste`. A IA é orientada a
+afirmar só o que os números sustentam e a tratar o resultado como contraste
+entre **pares de cores**, já que o servidor não sabe qual cor é texto.
+
+### `descrever_composicao_de_cores`
+
+Instrui a IA a descrever a composição de cores de uma imagem.
+
+| Argumento | Obrigatório | Descrição |
+|---|---|---|
+| `arquivo` | sim | nome do arquivo da imagem, como mostrado por `listar_imagens` |
+| `quantidade` | não (padrão 5) | quantas cores dominantes incluir, de 1 a 20 |
+
+A instrução pede para chamar `obter_informacoes`, `cores_dominantes` (com a
+`quantidade` pedida) e `proporcao_claro_escuro`, e responder com um parágrafo
+sobre a composição mais uma tabela de cor, quantidade de pixels e percentual.
+
+Erros possíveis (nos dois prompts), devolvidos como erro do protocolo com o
+código e a mensagem:
+
+| Código | Causa |
+|---|---|
+| `PARAMETRO_AUSENTE` | falta `arquivo` |
+| `PARAMETRO_INVALIDO` | `arquivo` em branco, `quantidade` fora de 1 a 20 ou não inteira, ou argumento que o prompt não declara |
+
+O nome do arquivo não é conferido na pasta ao montar o prompt: se ele não
+existir, o erro aparece quando a IA chamar as ferramentas.
+
 ## Cliente MCP
 
 O cliente é um programa de console que inicia o servidor como subprocesso (STDIO),
@@ -620,6 +703,10 @@ Uso:
 |---|---|
 | o número ou o nome de uma ferramenta | o cliente pede os parâmetros e mostra o resultado |
 | `listar` | pede de novo a lista de ferramentas ao servidor |
+| `recursos` | lista os resources do servidor, numerados |
+| `ler <número ou endereço>` | mostra o conteúdo de um resource (por exemplo `ler imagens://criterios-wcag`) |
+| `prompts` | lista os prompts do servidor, numerados |
+| `prompt <número ou nome>` | pede os argumentos do prompt e mostra a instrução montada |
 | `sair` | encerra o cliente (o fim da entrada também encerra) |
 
 Ao pedir um parâmetro, o cliente mostra o tipo, se é obrigatório, o valor padrão
@@ -638,6 +725,7 @@ O código do cliente está dividido em classes pequenas, no pacote `client`:
 | `ArgumentPrompter` | pergunta os parâmetros a partir do schema da ferramenta |
 | `ConversorDeValores` | converte o texto digitado para o tipo do parâmetro |
 | `ResultPrinter` | mostra o resultado da ferramenta |
+| `ExploradorDeRecursosEPrompts` | comandos de resources e prompts |
 
 ## Pré-requisitos
 

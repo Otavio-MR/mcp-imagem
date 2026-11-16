@@ -5,12 +5,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Scanner;
+import java.util.function.Consumer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import br.edu.ifpr.mcp_imagens.client.ArgumentPrompter;
 import br.edu.ifpr.mcp_imagens.client.ConversorDeValores;
+import br.edu.ifpr.mcp_imagens.client.ExploradorDeRecursosEPrompts;
 import br.edu.ifpr.mcp_imagens.client.FabricaDeClienteMcp;
 import br.edu.ifpr.mcp_imagens.client.MenuConsole;
 import br.edu.ifpr.mcp_imagens.client.ResultPrinter;
@@ -37,6 +39,7 @@ public class McpImagensClient {
    private final MenuConsole      menu;
    private final ArgumentPrompter prompter;
    private final ResultPrinter    impressor;
+   private final ExploradorDeRecursosEPrompts explorador;
 
    public McpImagensClient(McpSyncClient cliente, Scanner entrada,
                            PrintStream saida) {
@@ -47,6 +50,8 @@ public class McpImagensClient {
       this.prompter  = new ArgumentPrompter(entrada, saida,
                                             new ConversorDeValores());
       this.impressor = new ResultPrinter(saida);
+      this.explorador = new ExploradorDeRecursosEPrompts(cliente, prompter,
+                                                         saida);
    }
 
    private void executar() {
@@ -82,6 +87,8 @@ public class McpImagensClient {
             ferramentas = carregarFerramentas();
             continue;
          }
+         if (executarComandoExtra(comando))
+            continue;
 
          Optional<Tool> escolhida = menu.escolher(ferramentas, comando);
 
@@ -90,6 +97,35 @@ public class McpImagensClient {
          else
             saida.println("Ferramenta não encontrada: " + comando);
       }
+   }
+
+   /**
+    * Comandos opcionais (resources e prompts).
+    *
+    * @return {@code true} se o texto era um desses comandos
+    */
+   private boolean executarComandoExtra(String comando) {
+      String[] partes = comando.split("\\s+", 2);
+      String   nome   = partes[0].toLowerCase();
+      String   alvo   = partes.length > 1 ? partes[1] : "";
+
+      switch (nome) {
+         case "recursos" -> explorador.listarRecursos();
+         case "prompts"  -> explorador.listarPrompts();
+         case "ler"      -> comAlvo(nome, alvo, explorador::lerRecurso);
+         case "prompt"   -> comAlvo(nome, alvo, explorador::obterPrompt);
+         default         -> { return false; }
+      }
+      return true;
+   }
+
+   private void comAlvo(String comando, String alvo,
+                        Consumer<String> acao) {
+      if (alvo.isBlank())
+         saida.println("Informe o número ou o nome depois de '" + comando +
+                       "'.");
+      else
+         acao.accept(alvo.trim());
    }
 
    private List<Tool> carregarFerramentas() {

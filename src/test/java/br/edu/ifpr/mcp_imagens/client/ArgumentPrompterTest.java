@@ -13,6 +13,8 @@ import java.util.Scanner;
 
 import org.junit.jupiter.api.Test;
 
+import io.modelcontextprotocol.spec.McpSchema.Prompt;
+import io.modelcontextprotocol.spec.McpSchema.PromptArgument;
 import io.modelcontextprotocol.spec.McpSchema.Tool;
 
 class ArgumentPrompterTest {
@@ -125,5 +127,32 @@ class ArgumentPrompterTest {
                        .description("d").build();
 
       assertEquals(Map.of(), pedir(vazia, ""));
+   }
+
+   @Test
+   void pedeOsArgumentosDeUmPromptComoTexto() {
+      Prompt prompt = new Prompt("p", "d", List.of(
+            new PromptArgument("arquivo", "Nome do arquivo", true),
+            new PromptArgument("quantidade", "Quantas cores", false)));
+      ArgumentPrompter prompter = new ArgumentPrompter(
+            new Scanner("banner.png\n7\n"), saida, new ConversorDeValores());
+
+      Map<String, Object> argumentos = prompter.pedir(prompt);
+
+      // argumentos de prompt sempre seguem como texto
+      assertEquals("banner.png", argumentos.get("arquivo"));
+      assertEquals("7", argumentos.get("quantidade"));
+      assertTrue(texto().contains("'arquivo' [string] (obrigatório)"), texto());
+      assertTrue(texto().contains("'quantidade' [string] (opcional)"),
+                 texto());
+   }
+
+   @Test
+   void promptSemArgumentosNaoPergunta() {
+      ArgumentPrompter prompter = new ArgumentPrompter(new Scanner(""), saida,
+                                                       new ConversorDeValores());
+
+      assertEquals(Map.of(), prompter.pedir(new Prompt("p", "d", List.of())));
+      assertEquals("", texto());
    }
 }

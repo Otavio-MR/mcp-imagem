@@ -13,6 +13,13 @@ import br.edu.ifpr.mcp_imagens.infra.config.TabelaWcag;
 import br.edu.ifpr.mcp_imagens.infra.loader.ImageIoLoader;
 import br.edu.ifpr.mcp_imagens.infra.repository.ImagemRepository;
 import br.edu.ifpr.mcp_imagens.infra.repository.ImagemRepositoryEmDisco;
+import br.edu.ifpr.mcp_imagens.mcp.prompts.AnalisarAcessibilidadeDeCoresPrompt;
+import br.edu.ifpr.mcp_imagens.mcp.prompts.DescreverComposicaoDeCoresPrompt;
+import br.edu.ifpr.mcp_imagens.mcp.prompts.McpPromptDefinition;
+import br.edu.ifpr.mcp_imagens.mcp.resources.CoresNomeadasResource;
+import br.edu.ifpr.mcp_imagens.mcp.resources.CriteriosWcagResource;
+import br.edu.ifpr.mcp_imagens.mcp.resources.ImagensResource;
+import br.edu.ifpr.mcp_imagens.mcp.resources.McpResourceDefinition;
 import br.edu.ifpr.mcp_imagens.mcp.tools.CalcularContrasteTool;
 import br.edu.ifpr.mcp_imagens.mcp.tools.CompararImagensTool;
 import br.edu.ifpr.mcp_imagens.mcp.tools.ContarPixelsDaCorTool;
@@ -60,21 +67,30 @@ public class McpImagensServer {
    private static final String NOME   = "mcp-imagens";
    private static final String VERSAO = "1.0.0";
 
-   private static List<McpToolDefinition> criarFerramentas(AppConfig config) {
-      CarregadorDeRecursos carregador  = new CarregadorDeRecursos();
-      CorParser            parser      = new CorParser(carregador.objeto(
-                              "cores-nomeadas", CoresNomeadas.class).cores());
-      TabelaWcag           wcag        = carregador.objeto("criterios-wcag",
-                                                           TabelaWcag.class);
+   /** Objetos compartilhados por ferramentas, resources e prompts. */
+   private record Base(CoresNomeadas cores, TabelaWcag wcag,
+                       ImagemRepository repositorio,
+                       InformacoesService informacoes) {
+      static Base criar(AppConfig config) {
+         CarregadorDeRecursos carregador  = new CarregadorDeRecursos();
+         ImagemRepository     repositorio = new ImagemRepositoryEmDisco(
+                                         config.pastaImagens(),
+                                         new ImageIoLoader(
+                                               config.tamanhoMaximoBytes(),
+                                               config.pixelsMaximos()));
 
-      ImagemRepository     repositorio = new ImagemRepositoryEmDisco(
-                                      config.pastaImagens(),
-                                      new ImageIoLoader(
-                                            config.tamanhoMaximoBytes(),
-                                            config.pixelsMaximos()));
-      InformacoesService   informacoes = new InformacoesServicePadrao(
-                                                                 repositorio);
+         return new Base(carregador.objeto("cores-nomeadas",
+                                           CoresNomeadas.class),
+                         carregador.objeto("criterios-wcag", TabelaWcag.class),
+                         repositorio,
+                         new InformacoesServicePadrao(repositorio));
+      }
+   }
 
+   private static List<McpToolDefinition> criarFerramentas(Base base) {
+      CorParser            parser      = new CorParser(base.cores().cores());
+      ImagemRepository     repositorio = base.repositorio();
+      InformacoesService   informacoes = base.informacoes();
       ContadorDePixels     contador    = new ContadorDePixelsPadrao();
 
       return List.of(
@@ -88,7 +104,20 @@ public class McpImagensServer {
          new HistogramaDeBrilhoTool(repositorio, new AnalisadorDeBrilhoPadrao()),
          new CompararImagensTool(repositorio, new ComparadorDeImagensPadrao()),
          new CalcularContrasteTool(parser,
-               new CalculadoraDeContrastePadrao(wcag.criterios())));
+               new CalculadoraDeContrastePadrao(base.wcag().criterios())));
+   }
+
+   private static List<McpResourceDefinition> criarResources(Base base) {
+      return List.of(
+         new CoresNomeadasResource(base.cores()),
+         new CriteriosWcagResource(base.wcag()),
+         new ImagensResource(base.informacoes()));
+   }
+
+   private static List<McpPromptDefinition> criarPrompts() {
+      return List.of(
+         new AnalisarAcessibilidadeDeCoresPrompt(),
+         new DescreverComposicaoDeCoresPrompt());
    }
 
    private static SyncSpecification<SingleSessionSyncSpecification>
@@ -100,6 +129,8 @@ public class McpImagensServer {
       ServerCapabilities           capabilities      =
                                    ServerCapabilities.builder()
                                                      .tools(true)
+                                                     .resources(false, false)
+                                                     .prompts(false)
                                                      .logging()
                                                      .build();
 
@@ -120,15 +151,27 @@ public class McpImagensServer {
 
       AppConfig                                         config   =
                                                        AppConfig.doAmbiente();
+      Base                                              base     =
+                                                            Base.criar(config);
       ToolRegistry                                      registro =
-                                    new ToolRegistry(criarFerramentas(config));
+                                     new ToolRegistry(criarFerramentas(base));
+      List<McpResourceDefinition>                       resources =
+                                                         criarResources(base);
+      List<McpPromptDefinition>                         prompts   =
+                                                              criarPrompts();
       SyncSpecification<SingleSessionSyncSpecification> servidor =
                                                           configurarServidor();
 
       registro.registrarEm(servidor);
+      for (McpResourceDefinition resource : resources)
+         resource.register(servidor);
+      for (McpPromptDefinition prompt : prompts)
+         prompt.register(servidor);
       servidor.build();
 
       LOG.info("Servidor MCP Imagens iniciado via STDIO: {} ferramenta(s), " +
-               "imagens em {}", registro.quantidade(), config.pastaImagens());
+               "{} resource(s), {} prompt(s), imagens em {}",
+               registro.quantidade(), resources.size(), prompts.size(),
+               config.pastaImagens());
    }
 }
