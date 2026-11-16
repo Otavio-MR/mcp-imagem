@@ -10,10 +10,90 @@ e UX que querem checar imagens, paletas e contraste (critérios WCAG).
 O servidor **não chama nenhuma IA**: ele mede e calcula. A interpretação ("isso
 é um problema de acessibilidade?") fica com a IA.
 
-> **Status:** em construção. Este arquivo documenta as onze ferramentas do
-> servidor, os resources, os prompts, o cliente, as imagens de exemplo e a
-> configuração do Claude Desktop e do MCP Inspector. Faltam a revisão final e a
-> seção de limitações conhecidas.
+## Índice
+
+1. [Arquitetura e decisões](#arquitetura-e-decisões)
+2. [Convenções](#convenções)
+3. [Ferramentas do servidor](#ferramentas-do-servidor), [Resources](#resources) e [Prompts](#prompts)
+4. [Limitações conhecidas](#limitações-conhecidas)
+5. [Pré-requisitos](#pré-requisitos) e [Builds](#builds)
+6. [Cliente MCP](#cliente-mcp)
+7. [Imagens de exemplo](#imagens-de-exemplo)
+8. [Claude Desktop](#claude-desktop) e [MCP Inspector](#mcp-inspector)
+9. [Testes manuais](#testes-manuais)
+10. [Referências](#referências) e [Licença](#licença)
+
+## Arquitetura e decisões
+
+O projeto é um único projeto Maven com **duas aplicações**: o servidor MCP e o
+cliente MCP, que conversam por STDIO (JSON-RPC pela entrada e saída padrão do
+processo). O servidor nunca escreve no `System.out`, que é o canal do
+protocolo; os logs vão para o stderr (`logback.xml`).
+
+```mermaid
+flowchart LR
+  A["Claude Desktop, MCP Inspector<br/>ou cliente de console"] -- "STDIO (JSON-RPC)" --> M["main<br/>McpImagensServer"]
+  M --> P["mcp<br/>ferramentas, resources, prompts"]
+  P --> S["service<br/>análises de imagem e de cor"]
+  P --> R["infra<br/>repositório e leitura de imagens"]
+  S --> D["domain<br/>Imagem, Cor, critérios, erros"]
+  R --> D
+```
+
+### Pacotes
+
+Todos em `br.edu.ifpr.mcp_imagens`:
+
+| Pacote | Responsabilidade |
+|---|---|
+| `main` | os dois programas: `McpImagensServer` (raiz de composição) e `McpImagensClient` |
+| `mcp.tools`, `mcp.resources`, `mcp.prompts` | as 11 ferramentas, os 3 resources e os 2 prompts: leem os argumentos, chamam os serviços e montam a resposta |
+| `mcp.utils` | infraestrutura do protocolo: `AbstractTool`, `ArgumentReader`, `InputSchema`, `ToolResults`, `ToolRegistry`, `Parametros` |
+| `service` | as análises (contagem, cores dominantes, brilho, transparência, comparação, contraste): uma interface e uma implementação `...Padrao` cada |
+| `domain` | o núcleo, sem dependência de MCP nem de `ImageIO`: `Imagem`, `Cor`, os critérios de pixel, os resultados e as exceções |
+| `infra` | o que toca o mundo de fora: pasta de imagens (`ImagemRepository`), leitura com `ImageIO`, nomes de arquivo seguros, dicionários JSON |
+| `client` | as classes pequenas do cliente de console |
+
+### Padrões usados e onde
+
+| Padrão | Onde | Por quê |
+|---|---|---|
+| **Template Method** | `AbstractTool`, `AbstractResource`, `AbstractPrompt` | a base cuida do que é igual (registro, leitura dos argumentos, JSON, conversão de exceção em erro padronizado); cada classe concreta só diz nome, descrição e schema e faz a sua tarefa |
+| **Registry** | `ToolRegistry` | registra as ferramentas sem conhecer as classes concretas; uma ferramenta nova é só mais uma linha em `McpImagensServer` |
+| **Strategy** | `CriterioDePixel` (`CorComTolerancia`, `Transparente`, `Claro`, `ForaDaPaleta`) | "pixels de uma cor", "transparentes", "claros" e "fora da paleta" usam o mesmo `ContadorDePixels`; um critério novo não muda o contador |
+| **Repository** | `ImagemRepository` e `ImagemRepositoryEmDisco` | as ferramentas pedem uma imagem pelo nome sem saber se ela vem de disco; nos testes entra um repositório falso |
+| **Adapter** | `ImagemBufferedImage` | adapta o `BufferedImage` do Java à interface `Imagem`, que é a única que os serviços conhecem |
+| **Injeção de dependência manual** | construtores das ferramentas e serviços; montagem em `McpImagensServer` | sem framework; cada classe recebe interfaces, e só a raiz de composição conhece as implementações |
+| **Objetos de valor imutáveis** | `record`s como `Cor`, `Parcela`, `ResultadoContagem` | resultados sem estado mutável |
+| **Hierarquia de exceções** | `ImagensException` e as subclasses, com `CodigoErro` | cada falha prevista tem um código; `AbstractTool` as transforma em `CODIGO: mensagem` |
+
+### Decisões
+
+* **Servidor mede, IA interpreta.** O servidor não chama nenhuma IA; devolve
+  números exatos, e os prompts orientam a IA a usá-los sem inventar.
+* **Serviços testáveis sem arquivos.** Os serviços dependem da interface
+  `Imagem`, e os testes usam imagens sintéticas criadas em memória, com números
+  conhecidos (por exemplo, 30 pixels vermelhos em 100).
+* **Dicionários fora do código.** Os nomes de cores e os limiares do WCAG ficam
+  em `src/main/resources/imagens/*.json`, e os resources
+  `imagens://cores-nomeadas` e `imagens://criterios-wcag` expõem os mesmos
+  arquivos que as ferramentas usam.
+* **Validação própria dos argumentos.** O servidor desliga a validação de
+  entrada do SDK (`validateToolInputs(false)`) e valida em `ArgumentReader`,
+  para devolver sempre os códigos de erro padronizados.
+* **Uma chamada de cada vez.** O servidor usa `immediateExecution(true)`: cada
+  chamada roda na thread que lê a entrada. Sem isso, duas chamadas
+  simultâneas podiam escrever a resposta ao mesmo tempo e o SDK perdia uma
+  delas (`Failed to enqueue message`); um teste de integração cobre o caso.
+* **Segurança do nome do arquivo.** Só nomes são aceitos, nunca caminhos
+  (`NomeDeArquivoSeguro`), e o limite de tamanho é conferido pelo cabeçalho
+  antes de decodificar a imagem.
+* **`java.awt.headless=true`.** O `ImageIO` usa classes gráficas do JDK; o
+  servidor define essa propriedade no início do `main` para não depender de tela.
+* **Sem bibliotecas extras.** As dependências são só as do exemplo do
+  professor: o SDK do MCP (que traz o Jackson), o slf4j com o logback, e o
+  JUnit nos testes. A leitura de imagens é do próprio JDK (`javax.imageio`).
+  Não há Spring, Lombok nem geradores de código.
 
 ## Convenções
 
@@ -806,6 +886,72 @@ código e a mensagem:
 O nome do arquivo não é conferido na pasta ao montar o prompt: se ele não
 existir, o erro aparece quando a IA chamar as ferramentas.
 
+## Limitações conhecidas
+
+* **Formatos e tamanho.** Só PNG, JPG/JPEG, GIF e BMP (o que o `ImageIO` do JDK
+  lê); não há WebP, SVG nem TIFF. Arquivo de até 20 MB e imagem de até 25
+  milhões de pixels. Em GIF animado vale só o primeiro quadro.
+* **Tons de cinza de 8 bits** são medidos mais claros do que aparecem em um
+  visualizador, por causa do `getRGB` do Java (veja a tabela em
+  "Convenções"). Salve a imagem como RGB para medidas fiéis.
+* **`contraste_das_cores_dominantes` é uma aproximação.** Ele calcula o
+  contraste entre as duas cores mais frequentes e não detecta onde está o
+  texto; só faz sentido para texto sobre fundo liso. Com `passo_de_agrupamento`
+  maior que 1, as cores são o centro de grupos, e não cores exatas da imagem.
+* **Transparência parcial.** Os pixels semitransparentes são medidos pelas
+  cores que têm gravadas; nenhuma análise os mistura com um fundo. As
+  comparações de cor ignoram o alfa (`comparar_imagens` é a exceção: compara os
+  quatro canais).
+* **Agrupamento de cores simples.** `cores_dominantes` agrupa por faixas dos
+  canais vermelho, verde e azul, e não por semelhança visual (como no espaço
+  Lab). Com `passo_de_agrupamento` 1 a análise usa uma tabela de 16,7 milhões
+  de posições (cerca de 64 MB de memória).
+* **Imagens só da pasta configurada.** O servidor não recebe imagens anexadas à
+  conversa nem baixa imagens da internet; veja o aviso sobre `IMG_DIR`.
+* **Uma chamada de cada vez.** Uma análise demorada em uma imagem grande
+  atrasa as chamadas seguintes.
+* **Só transporte STDIO.** O servidor não oferece HTTP.
+* **Dicionário de cores pequeno.** Cerca de 26 nomes em português; para outras
+  cores use o hexadecimal.
+* **Prompts não conferem o arquivo.** `analisar_acessibilidade_de_cores` e
+  `descrever_composicao_de_cores` só montam o texto; se o arquivo não existir, o
+  erro aparece quando a IA chamar as ferramentas.
+* **Testes manuais pendentes.** O Claude Desktop e o MCP Inspector (Docker)
+  ainda precisam ser testados e registrados na tabela de testes manuais.
+
+## Pré-requisitos
+
+* JDK 25 e Apache Maven 3.9 ou superior.
+* Docker Desktop, apenas para testar no MCP Inspector (veja a seção "MCP Inspector").
+
+## Builds
+
+| Comando | O que faz |
+|---|---|
+| `mvn test` | executa os testes unitários |
+| `mvn clean verify -Pserver` | gera `server/mcp_imagens_server.jar` (com `server/libs`) e executa os testes unitários e os de integração |
+| `mvn clean package -Pserver -DskipTests` | só gera o servidor |
+| `mvn clean package -Pclient -DskipTests` | gera `target/dist-client/mcp_imagens_client.jar` (com `libs`) |
+
+> Gerar o servidor executa `clean` e apaga o `target`, inclusive o cliente. Por
+> isso o servidor vai primeiro e o cliente depois.
+
+Os testes de integração geram as próprias imagens, com o `ImageIO`, em uma
+pasta temporária, e sobem o JAR do servidor com `IMG_DIR` apontando para ela.
+
+### No Eclipse
+
+1. **File, Import, Maven, Existing Maven Projects** e escolha a pasta do projeto.
+2. Clique com o botão direito no projeto, **Run As, Maven build...**, e informe:
+   * servidor com testes: **Goals** `clean verify`, **Profiles** `server`;
+   * servidor sem testes: **Goals** `clean package -DskipTests`, **Profiles** `server`;
+   * cliente: **Goals** `clean package -DskipTests`, **Profiles** `client`.
+3. Para só rodar os testes unitários: botão direito no projeto, **Run As, JUnit Test**
+   (ou **Maven test**).
+
+O Eclipse precisa estar configurado com um JDK 25 (**Window, Preferences, Java,
+Installed JREs**).
+
 ## Cliente MCP
 
 O cliente é um programa de console que inicia o servidor como subprocesso (STDIO),
@@ -856,39 +1002,6 @@ O código do cliente está dividido em classes pequenas, no pacote `client`:
 | `ConversorDeValores` | converte o texto digitado para o tipo do parâmetro |
 | `ResultPrinter` | mostra o resultado da ferramenta |
 | `ExploradorDeRecursosEPrompts` | comandos de resources e prompts |
-
-## Pré-requisitos
-
-* JDK 25 e Apache Maven 3.9 ou superior.
-* Docker Desktop, apenas para testar no MCP Inspector (ver as próximas fases).
-
-## Builds
-
-| Comando | O que faz |
-|---|---|
-| `mvn test` | executa os testes unitários |
-| `mvn clean verify -Pserver` | gera `server/mcp_imagens_server.jar` (com `server/libs`) e executa os testes unitários e os de integração |
-| `mvn clean package -Pserver -DskipTests` | só gera o servidor |
-| `mvn clean package -Pclient -DskipTests` | gera `target/dist-client/mcp_imagens_client.jar` (com `libs`) |
-
-> Gerar o servidor executa `clean` e apaga o `target`, inclusive o cliente. Por
-> isso o servidor vai primeiro e o cliente depois.
-
-Os testes de integração geram as próprias imagens, com o `ImageIO`, em uma
-pasta temporária, e sobem o JAR do servidor com `IMG_DIR` apontando para ela.
-
-### No Eclipse
-
-1. **File, Import, Maven, Existing Maven Projects** e escolha a pasta do projeto.
-2. Clique com o botão direito no projeto, **Run As, Maven build...**, e informe:
-   * servidor com testes: **Goals** `clean verify`, **Profiles** `server`;
-   * servidor sem testes: **Goals** `clean package -DskipTests`, **Profiles** `server`;
-   * cliente: **Goals** `clean package -DskipTests`, **Profiles** `client`.
-3. Para só rodar os testes unitários: botão direito no projeto, **Run As, JUnit Test**
-   (ou **Maven test**).
-
-O Eclipse precisa estar configurado com um JDK 25 (**Window, Preferences, Java,
-Installed JREs**).
 
 ## Imagens de exemplo
 
@@ -979,8 +1092,8 @@ nome dele.
    Windows, feche também pelo ícone da bandeja; no macOS, `Cmd+Q`). Fechar só
    a janela não recarrega a configuração.
 5. Ao abrir, o servidor `mcp-imagens` deve aparecer na lista de ferramentas da
-   conversa, com as 11 ferramentas. Os resources e os prompts aparecem no menu
-   de anexos (**+**) da conversa.
+   conversa, com as 11 ferramentas. Os resources e os prompts ficam disponíveis
+   pelo menu **+** da conversa (a interface pode variar conforme a versão).
 
 O comando `java` precisa estar no `PATH` e ser o JDK 25. Se não estiver, use o
 caminho completo do executável em `command` (por exemplo,
@@ -1025,13 +1138,6 @@ que o servidor oferece. Para encerrar: `docker compose down`.
 O `compose.yaml` monta `./server` e `./imagens` em modo somente leitura
 (`:ro`); para testar com outras imagens, coloque-as na pasta `imagens/`.
 
-## Outros assistentes de IA
-
-Qualquer cliente MCP com transporte STDIO funciona com a mesma configuração do
-Claude Desktop: o comando `java -jar .../mcp_imagens_server.jar` e a variável
-de ambiente `IMG_DIR`. O cliente de console deste projeto (ver "Cliente MCP")
-é um exemplo.
-
 ## Testes manuais
 
 Além dos testes automatizados (`mvn clean verify -Pserver`), o servidor foi
@@ -1043,3 +1149,19 @@ exercitado nestes clientes:
 | Chamadas JSON-RPC diretas pela entrada padrão do servidor (STDIO) | funciona: as 11 ferramentas respondem com as imagens de `imagens/`, também com várias chamadas enviadas em sequência rápida |
 | Claude Desktop | a registrar após o teste (veja o passo a passo acima) |
 | MCP Inspector (Docker) | a registrar após o teste (veja o passo a passo acima) |
+
+## Referências
+
+* WCAG 2.2: [1.4.3 Contraste mínimo](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html),
+  [1.4.6 Contraste melhorado](https://www.w3.org/WAI/WCAG22/Understanding/contrast-enhanced.html)
+  e [1.4.11 Contraste não textual](https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html)
+* [Definição de luminância relativa](https://www.w3.org/TR/WCAG22/#dfn-relative-luminance)
+* [Model Context Protocol](https://modelcontextprotocol.io/)
+* [MCP Inspector](https://modelcontextprotocol.io/docs/tools/inspector)
+* [SDK Java do MCP](https://github.com/modelcontextprotocol/java-sdk) (versão 2.0.1)
+
+## Licença
+
+Distribuído sob a licença MIT; veja o arquivo [LICENSE](LICENSE).
+
+Trabalho da disciplina de Serviços Web (TADS, IFPR Londrina). Autor: Otávio.
