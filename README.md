@@ -350,6 +350,55 @@ Erros específicos:
 
 ---
 
+### `contar_pixels_transparentes`
+
+Conta quantos pixels da imagem são **transparentes** (alfa 0),
+**semitransparentes** (alfa de 1 a 254) e **opacos** (alfa 255), com o
+percentual de cada tipo sobre todos os pixels da imagem. Imagens sem canal alfa
+(JPG, BMP) têm todos os pixels opacos.
+
+| Parâmetro | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `arquivo` | string | sim | nome do arquivo, como mostrado por `listar_imagens` |
+
+Exemplo de chamada: `{"arquivo": "alfas.png"}` (imagem de 3 pixels vermelhos,
+com alfa 0, 128 e 255)
+
+```json
+{
+  "arquivo" : "alfas.png",
+  "temCanalAlfa" : true,
+  "totalPixels" : 3,
+  "transparentes" : {
+    "quantidade" : 1,
+    "percentual" : 33.33
+  },
+  "semitransparentes" : {
+    "quantidade" : 1,
+    "percentual" : 33.33
+  },
+  "opacos" : {
+    "quantidade" : 1,
+    "percentual" : 33.33
+  }
+}
+```
+
+Os três percentuais são arredondados separadamente, então a soma pode dar
+99,99 ou 100,01; as quantidades sempre somam `totalPixels`. Esta ferramenta
+não tem o parâmetro `ignorar_transparentes`, pois o objetivo dela é justamente
+contar os transparentes.
+
+Erros específicos:
+
+| Código | Causa |
+|---|---|
+| `PARAMETRO_INVALIDO` | `arquivo` em branco ou com caminho, ou parâmetro desconhecido |
+| `PARAMETRO_AUSENTE` | falta `arquivo` |
+| `IMAGEM_NAO_ENCONTRADA`, `FORMATO_NAO_SUPORTADO`, `IMAGEM_INVALIDA`, `IMAGEM_MUITO_GRANDE` | iguais aos de `obter_informacoes` |
+
+---
+
 ### `calcular_contraste`
 
 Calcula a razão de contraste entre a cor do texto e a do fundo pela fórmula do

@@ -195,7 +195,8 @@ class McpImagensServerIT {
    void servidorDisponibilizaAsFerramentasEsperadas() {
       assertEquals(Set.of("listar_imagens", "obter_informacoes",
                           "contar_pixels_da_cor", "cores_dominantes",
-                          "proporcao_claro_escuro", "calcular_contraste"),
+                          "proporcao_claro_escuro",
+                          "contar_pixels_transparentes", "calcular_contraste"),
                    client.listTools().tools().stream().map(Tool::name)
                          .collect(Collectors.toSet()));
    }
@@ -583,6 +584,66 @@ class McpImagensServerIT {
          assertErro("IMAGEM_NAO_ENCONTRADA",
                     chamar("proporcao_claro_escuro",
                            Map.of("arquivo", "nada.png")));
+      }
+   }
+
+   @Nested
+   class ContarPixelsTransparentes {
+      private JsonNode contar(String arquivo) {
+         CallToolResult resultado = chamar("contar_pixels_transparentes",
+                                           Map.of("arquivo", arquivo));
+
+         assertFalse(resultado.isError(), Resultados.texto(resultado));
+         return Resultados.json(resultado);
+      }
+
+      @Test
+      void estaDisponivelComDescricaoESchema() {
+         assertFerramentaDisponivel("contar_pixels_transparentes");
+         assertDescricaoAvisaDaPasta("contar_pixels_transparentes");
+         assertEquals(List.of("arquivo"),
+                      ferramenta("contar_pixels_transparentes").inputSchema()
+                                                               .get("required"));
+      }
+
+      @Test
+      void tresAlfasTresTipos() {
+         JsonNode json = contar("alfas.png");
+
+         assertEquals(3, json.get("totalPixels").asLong());
+         assertEquals(1, json.get("transparentes").get("quantidade").asLong());
+         assertEquals(1, json.get("semitransparentes").get("quantidade")
+                           .asLong());
+         assertEquals(1, json.get("opacos").get("quantidade").asLong());
+      }
+
+      @Test
+      void iconeTodoTransparente() {
+         JsonNode json = contar("icone.PNG");
+
+         assertEquals(64, json.get("transparentes").get("quantidade").asLong());
+         assertEquals(100.0, json.get("transparentes").get("percentual")
+                                 .asDouble(), 0);
+      }
+
+      @Test
+      void jpgTemTudoOpaco() {
+         JsonNode json = contar("foto.jpg");
+
+         assertFalse(json.get("temCanalAlfa").asBoolean());
+         assertEquals(256, json.get("opacos").get("quantidade").asLong());
+      }
+
+      @Test
+      void errosDeArquivo() {
+         assertErro("PARAMETRO_AUSENTE",
+                    chamar("contar_pixels_transparentes", Map.of()));
+         assertErro("IMAGEM_NAO_ENCONTRADA",
+                    chamar("contar_pixels_transparentes",
+                           Map.of("arquivo", "nada.png")));
+         assertErro("IMAGEM_INVALIDA",
+                    chamar("contar_pixels_transparentes",
+                           Map.of("arquivo", "falsa.png")));
       }
    }
 
