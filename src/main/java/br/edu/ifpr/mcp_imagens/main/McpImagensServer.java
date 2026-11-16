@@ -14,6 +14,7 @@ import br.edu.ifpr.mcp_imagens.infra.loader.ImageIoLoader;
 import br.edu.ifpr.mcp_imagens.infra.repository.ImagemRepository;
 import br.edu.ifpr.mcp_imagens.infra.repository.ImagemRepositoryEmDisco;
 import br.edu.ifpr.mcp_imagens.mcp.tools.CalcularContrasteTool;
+import br.edu.ifpr.mcp_imagens.mcp.tools.CompararImagensTool;
 import br.edu.ifpr.mcp_imagens.mcp.tools.ContarPixelsDaCorTool;
 import br.edu.ifpr.mcp_imagens.mcp.tools.ContarPixelsTransparentesTool;
 import br.edu.ifpr.mcp_imagens.mcp.tools.CoresDominantesTool;
@@ -27,6 +28,7 @@ import br.edu.ifpr.mcp_imagens.service.AnalisadorDeBrilhoPadrao;
 import br.edu.ifpr.mcp_imagens.service.AnalisadorDeCoresPadrao;
 import br.edu.ifpr.mcp_imagens.service.AnalisadorDeTransparenciaPadrao;
 import br.edu.ifpr.mcp_imagens.service.CalculadoraDeContrastePadrao;
+import br.edu.ifpr.mcp_imagens.service.ComparadorDeImagensPadrao;
 import br.edu.ifpr.mcp_imagens.service.ContadorDePixels;
 import br.edu.ifpr.mcp_imagens.service.ContadorDePixelsPadrao;
 import br.edu.ifpr.mcp_imagens.service.InformacoesService;
@@ -84,6 +86,7 @@ public class McpImagensServer {
          new ContarPixelsTransparentesTool(repositorio,
                new AnalisadorDeTransparenciaPadrao()),
          new HistogramaDeBrilhoTool(repositorio, new AnalisadorDeBrilhoPadrao()),
+         new CompararImagensTool(repositorio, new ComparadorDeImagensPadrao()),
          new CalcularContrasteTool(parser,
                new CalculadoraDeContrastePadrao(wcag.criterios())));
    }

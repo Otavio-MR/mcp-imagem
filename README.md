@@ -463,6 +463,67 @@ Erros específicos:
 
 ---
 
+### `comparar_imagens`
+
+Compara duas imagens do **mesmo tamanho** pixel a pixel e diz quantos pixels
+são iguais e quantos são diferentes, com o percentual, e o menor retângulo que
+contém todas as diferenças. Serve, por exemplo, para conferir se uma alteração
+de design mudou só o que deveria.
+
+Dois pixels são diferentes quando **algum dos quatro canais** (alfa, vermelho,
+verde ou azul) difere em mais que a tolerância. Um pixel totalmente
+transparente é comparado como os outros: as cores dele contam.
+
+| Parâmetro | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `arquivo_a` | string | sim | primeira imagem, como mostrada por `listar_imagens` |
+| `arquivo_b` | string | sim | segunda imagem, como mostrada por `listar_imagens` |
+| `tolerancia` | inteiro 0 a 255 | não (padrão 0) | diferença máxima aceita em cada canal; 0 = só pixels idênticos |
+
+Exemplo de chamada: `{"arquivo_a": "par-a.png", "arquivo_b": "par-b.png"}`
+(duas imagens de 6x6, a segunda com um quadrado de 2x2 pixels de outra cor)
+
+```json
+{
+  "arquivoA" : "par-a.png",
+  "arquivoB" : "par-b.png",
+  "largura" : 6,
+  "altura" : 6,
+  "totalPixels" : 36,
+  "tolerancia" : 0,
+  "identicas" : false,
+  "pixelsIguais" : {
+    "quantidade" : 32,
+    "percentual" : 88.89
+  },
+  "pixelsDiferentes" : {
+    "quantidade" : 4,
+    "percentual" : 11.11
+  },
+  "regiaoDiferente" : {
+    "xMin" : 2,
+    "yMin" : 3,
+    "xMax" : 3,
+    "yMax" : 4
+  }
+}
+```
+
+`regiaoDiferente` usa coordenadas a partir de (0, 0) no canto superior
+esquerdo, e os quatro extremos fazem parte do retângulo. Se as imagens são
+idênticas (`identicas` igual a `true`), `regiaoDiferente` vem `null`.
+
+Erros específicos:
+
+| Código | Causa |
+|---|---|
+| `DIMENSOES_DIFERENTES` | as imagens têm largura ou altura diferentes; a mensagem traz as duas dimensões (`a primeira tem 6x6 e a segunda tem 7x6`) |
+| `PARAMETRO_INVALIDO` | `tolerancia` fora de 0 a 255 ou não inteira, ou algum nome de arquivo inválido |
+| `PARAMETRO_AUSENTE` | falta `arquivo_a` ou `arquivo_b` |
+| `IMAGEM_NAO_ENCONTRADA`, `FORMATO_NAO_SUPORTADO`, `IMAGEM_INVALIDA`, `IMAGEM_MUITO_GRANDE` | iguais aos de `obter_informacoes`; a mensagem cita o arquivo com o problema |
+
+---
+
 ### `calcular_contraste`
 
 Calcula a razão de contraste entre a cor do texto e a do fundo pela fórmula do

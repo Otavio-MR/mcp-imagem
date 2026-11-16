@@ -197,7 +197,7 @@ class McpImagensServerIT {
                           "contar_pixels_da_cor", "cores_dominantes",
                           "proporcao_claro_escuro",
                           "contar_pixels_transparentes", "histograma_de_brilho",
-                          "calcular_contraste"),
+                          "comparar_imagens", "calcular_contraste"),
                    client.listTools().tools().stream().map(Tool::name)
                          .collect(Collectors.toSet()));
    }
@@ -715,6 +715,82 @@ class McpImagensServerIT {
          assertErro("IMAGEM_NAO_ENCONTRADA",
                     chamar("histograma_de_brilho",
                            Map.of("arquivo", "nada.png")));
+      }
+   }
+
+   @Nested
+   class CompararImagens {
+      private JsonNode comparar(Map<String, Object> argumentos) {
+         CallToolResult resultado = chamar("comparar_imagens", argumentos);
+
+         assertFalse(resultado.isError(), Resultados.texto(resultado));
+         return Resultados.json(resultado);
+      }
+
+      @Test
+      void estaDisponivelComDescricaoESchema() {
+         assertFerramentaDisponivel("comparar_imagens");
+         assertDescricaoAvisaDaPasta("comparar_imagens");
+         assertEquals(List.of("arquivo_a", "arquivo_b"),
+                      ferramenta("comparar_imagens").inputSchema()
+                                                    .get("required"));
+      }
+
+      @Test
+      void imagemComElaMesmaEIdentica() {
+         JsonNode json = comparar(Map.of("arquivo_a", "banner.png",
+                                         "arquivo_b", "banner.png"));
+
+         assertTrue(json.get("identicas").asBoolean());
+         assertEquals(200, json.get("pixelsIguais").get("quantidade").asLong());
+      }
+
+      @Test
+      void umPixelQuaseVermelhoDiferenteComToleranciaZero() {
+         JsonNode json = comparar(Map.of("arquivo_a", "vermelho-branco.png",
+                                         "arquivo_b", "quase-vermelho.png"));
+
+         assertFalse(json.get("identicas").asBoolean());
+         assertEquals(1, json.get("pixelsDiferentes").get("quantidade")
+                          .asLong());
+         assertEquals(0, json.get("regiaoDiferente").get("xMin").asInt());
+         assertEquals(0, json.get("regiaoDiferente").get("yMax").asInt());
+      }
+
+      @Test
+      void toleranciaUmTornaAsImagensIdenticas() {
+         assertTrue(comparar(Map.of("arquivo_a", "vermelho-branco.png",
+                                    "arquivo_b", "quase-vermelho.png",
+                                    "tolerancia", 1))
+                          .get("identicas").asBoolean());
+      }
+
+      @Test
+      void tamanhosDiferentes() {
+         CallToolResult resultado = chamar("comparar_imagens",
+               Map.of("arquivo_a", "banner.png",
+                      "arquivo_b", "vermelho-branco.png"));
+
+         assertErro("DIMENSOES_DIFERENTES", resultado);
+         assertTrue(Resultados.texto(resultado)
+                              .contains("a primeira tem 20x10 e a segunda " +
+                                        "tem 10x10"),
+                    Resultados.texto(resultado));
+      }
+
+      @Test
+      void erros() {
+         assertErro("PARAMETRO_AUSENTE",
+                    chamar("comparar_imagens", Map.of("arquivo_a", "a.png")));
+         assertErro("IMAGEM_NAO_ENCONTRADA",
+                    chamar("comparar_imagens",
+                           Map.of("arquivo_a", "banner.png",
+                                  "arquivo_b", "nada.png")));
+         assertErro("PARAMETRO_INVALIDO",
+                    chamar("comparar_imagens",
+                           Map.of("arquivo_a", "banner.png",
+                                  "arquivo_b", "banner.png",
+                                  "tolerancia", 256)));
       }
    }
 
