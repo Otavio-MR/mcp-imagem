@@ -303,6 +303,53 @@ Erros específicos:
 
 ---
 
+### `proporcao_claro_escuro`
+
+Conta quantos pixels da imagem são claros e quantos são escuros, com o
+percentual de cada lado. Um pixel é **claro** quando o seu brilho (luma, de 0 a
+255, calculado como 0,2126 R + 0,7152 G + 0,0722 B) é **maior ou igual** ao
+limiar; senão é **escuro**. O brilho usa só as cores: a transparência não
+entra na conta.
+
+| Parâmetro | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `arquivo` | string | sim | nome do arquivo, como mostrado por `listar_imagens` |
+| `limiar` | inteiro 0 a 255 | não (padrão 128) | brilho mínimo para ser considerado claro |
+| `ignorar_transparentes` | booleano | não (padrão `true`) | se `true`, pixels com alfa 0 não entram na conta |
+
+Exemplo de chamada: `{"arquivo": "vermelho-branco.png"}`
+
+```json
+{
+  "arquivo" : "vermelho-branco.png",
+  "limiar" : 128,
+  "ignorarTransparentes" : true,
+  "totalConsiderado" : 100,
+  "claros" : {
+    "quantidade" : 70,
+    "percentual" : 70.00
+  },
+  "escuros" : {
+    "quantidade" : 30,
+    "percentual" : 30.00
+  }
+}
+```
+
+O vermelho puro tem brilho 54 (escuro) e o branco 255 (claro). `claros` mais
+`escuros` sempre dá `totalConsiderado`. Com `ignorar_transparentes` igual a
+`false`, um pixel transparente `#00000000` conta como escuro (brilho 0).
+
+Erros específicos:
+
+| Código | Causa |
+|---|---|
+| `PARAMETRO_INVALIDO` | `limiar` fora de 0 a 255 ou não inteiro, `ignorar_transparentes` não booleano ou `arquivo` inválido |
+| `PARAMETRO_AUSENTE` | falta `arquivo` |
+| `IMAGEM_NAO_ENCONTRADA`, `FORMATO_NAO_SUPORTADO`, `IMAGEM_INVALIDA`, `IMAGEM_MUITO_GRANDE` | iguais aos de `obter_informacoes` |
+
+---
+
 ### `calcular_contraste`
 
 Calcula a razão de contraste entre a cor do texto e a do fundo pela fórmula do

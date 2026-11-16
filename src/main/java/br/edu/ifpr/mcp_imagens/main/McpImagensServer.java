@@ -18,6 +18,7 @@ import br.edu.ifpr.mcp_imagens.mcp.tools.ContarPixelsDaCorTool;
 import br.edu.ifpr.mcp_imagens.mcp.tools.CoresDominantesTool;
 import br.edu.ifpr.mcp_imagens.mcp.tools.ListarImagensTool;
 import br.edu.ifpr.mcp_imagens.mcp.tools.ObterInformacoesTool;
+import br.edu.ifpr.mcp_imagens.mcp.tools.ProporcaoClaroEscuroTool;
 import br.edu.ifpr.mcp_imagens.mcp.utils.McpToolDefinition;
 import br.edu.ifpr.mcp_imagens.mcp.utils.ToolRegistry;
 import br.edu.ifpr.mcp_imagens.service.AnalisadorDeCoresPadrao;
@@ -75,6 +76,7 @@ public class McpImagensServer {
          new ObterInformacoesTool(informacoes),
          new ContarPixelsDaCorTool(repositorio, parser, contador),
          new CoresDominantesTool(repositorio, new AnalisadorDeCoresPadrao()),
+         new ProporcaoClaroEscuroTool(repositorio, contador),
          new CalcularContrasteTool(parser,
                new CalculadoraDeContrastePadrao(wcag.criterios())));
    }

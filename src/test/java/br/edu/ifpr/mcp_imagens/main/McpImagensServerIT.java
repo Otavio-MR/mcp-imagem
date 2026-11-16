@@ -195,7 +195,7 @@ class McpImagensServerIT {
    void servidorDisponibilizaAsFerramentasEsperadas() {
       assertEquals(Set.of("listar_imagens", "obter_informacoes",
                           "contar_pixels_da_cor", "cores_dominantes",
-                          "calcular_contraste"),
+                          "proporcao_claro_escuro", "calcular_contraste"),
                    client.listTools().tools().stream().map(Tool::name)
                          .collect(Collectors.toSet()));
    }
@@ -520,6 +520,69 @@ class McpImagensServerIT {
                     chamar("cores_dominantes", Map.of("arquivo", "nada.png")));
          assertErro("IMAGEM_INVALIDA",
                     chamar("cores_dominantes", Map.of("arquivo", "falsa.png")));
+      }
+   }
+
+   @Nested
+   class ProporcaoClaroEscuro {
+      private JsonNode proporcao(Map<String, Object> argumentos) {
+         CallToolResult resultado = chamar("proporcao_claro_escuro",
+                                           argumentos);
+
+         assertFalse(resultado.isError(), Resultados.texto(resultado));
+         return Resultados.json(resultado);
+      }
+
+      @Test
+      void estaDisponivelComDescricaoESchema() {
+         assertFerramentaDisponivel("proporcao_claro_escuro");
+         assertDescricaoAvisaDaPasta("proporcao_claro_escuro");
+         assertEquals(List.of("arquivo"),
+                      ferramenta("proporcao_claro_escuro").inputSchema()
+                                                          .get("required"));
+      }
+
+      @Test
+      void vermelhoEscuroEBrancoClaro() {
+         // vermelho puro tem brilho 54, branco 255
+         JsonNode json = proporcao(Map.of("arquivo", "vermelho-branco.png"));
+
+         assertEquals(70, json.get("claros").get("quantidade").asLong());
+         assertEquals(30, json.get("escuros").get("quantidade").asLong());
+         assertEquals(30.0, json.get("escuros").get("percentual").asDouble(),
+                      0);
+      }
+
+      @Test
+      void limiarMudaOResultado() {
+         assertEquals(100, proporcao(Map.of("arquivo", "vermelho-branco.png",
+                                            "limiar", 54))
+                                 .get("claros").get("quantidade").asLong());
+         assertEquals(70, proporcao(Map.of("arquivo", "vermelho-branco.png",
+                                           "limiar", 55))
+                                .get("claros").get("quantidade").asLong());
+      }
+
+      @Test
+      void transparentesSaoIgnoradosPorPadrao() {
+         assertEquals(2, proporcao(Map.of("arquivo", "alfas.png"))
+                             .get("totalConsiderado").asLong());
+      }
+
+      @Test
+      void limiarForaDaFaixa() {
+         assertErro("PARAMETRO_INVALIDO",
+                    chamar("proporcao_claro_escuro",
+                           Map.of("arquivo", "banner.png", "limiar", 256)));
+      }
+
+      @Test
+      void errosDeArquivo() {
+         assertErro("PARAMETRO_AUSENTE",
+                    chamar("proporcao_claro_escuro", Map.of()));
+         assertErro("IMAGEM_NAO_ENCONTRADA",
+                    chamar("proporcao_claro_escuro",
+                           Map.of("arquivo", "nada.png")));
       }
    }
 

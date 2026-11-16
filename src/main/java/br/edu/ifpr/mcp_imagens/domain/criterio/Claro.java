@@ -9,6 +9,10 @@ import br.edu.ifpr.mcp_imagens.domain.model.Cor;
  * Os pixels escuros são os que este critério recusa; use {@link #negado()}.
  */
 public final class Claro implements CriterioDePixel {
+   public static final int LIMIAR_MINIMO = 0;
+   public static final int LIMIAR_MAXIMO = 255;
+   public static final int LIMIAR_PADRAO = 128;
+
    private final int limiar;
 
    /**
