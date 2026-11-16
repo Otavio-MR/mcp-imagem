@@ -10,11 +10,12 @@ e UX que querem checar imagens, paletas e contraste (critérios WCAG).
 O servidor **não chama nenhuma IA**: ele mede e calcula. A interpretação ("isso
 é um problema de acessibilidade?") fica com a IA.
 
-> **Status:** em construção. Este arquivo documenta, por enquanto, o
-> esqueleto e as duas primeiras ferramentas (`listar_imagens` e
-> `calcular_contraste`). As demais ferramentas, resources, prompts, o cliente
-> refatorado, o Claude Desktop e o MCP Inspector serão acrescentados nas
-> próximas fases.
+> **Status:** em construção. Este arquivo documenta, por enquanto, as nove
+> ferramentas de análise do servidor (`listar_imagens`, `obter_informacoes`,
+> `contar_pixels_da_cor`, `cores_dominantes`, `proporcao_claro_escuro`,
+> `contar_pixels_transparentes`, `histograma_de_brilho`, `comparar_imagens` e
+> `calcular_contraste`). Resources, prompts, o cliente refatorado, o Claude
+> Desktop e o MCP Inspector serão acrescentados nas próximas fases.
 
 ## Convenções
 
