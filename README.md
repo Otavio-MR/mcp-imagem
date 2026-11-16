@@ -399,6 +399,70 @@ Erros específicos:
 
 ---
 
+### `histograma_de_brilho`
+
+Mostra como o brilho (luma, de 0 a 255) se distribui pelos pixels: a escala é
+dividida em faixas iguais, da mais escura à mais clara, e para cada faixa vêm o
+intervalo de brilho, a quantidade exata de pixels e o percentual. Serve para
+saber se a imagem é escura, clara ou tem pouco contraste. O brilho é truncado
+para inteiro antes de escolher a faixa, e as faixas vazias aparecem com zero.
+
+| Parâmetro | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `arquivo` | string | sim | nome do arquivo, como mostrado por `listar_imagens` |
+| `faixas` | inteiro 2 a 32 | não (padrão 8) | em quantas faixas dividir a escala de brilho |
+| `ignorar_transparentes` | booleano | não (padrão `true`) | se `true`, pixels com alfa 0 não entram na conta |
+
+Exemplo de chamada: `{"arquivo": "vermelho-branco.png", "faixas": 4}`
+
+```json
+{
+  "arquivo" : "vermelho-branco.png",
+  "numeroDeFaixas" : 4,
+  "ignorarTransparentes" : true,
+  "totalConsiderado" : 100,
+  "faixas" : [ {
+    "indice" : 0,
+    "lumaMinima" : 0,
+    "lumaMaxima" : 63,
+    "quantidade" : 30,
+    "percentual" : 30.00
+  }, {
+    "indice" : 1,
+    "lumaMinima" : 64,
+    "lumaMaxima" : 127,
+    "quantidade" : 0,
+    "percentual" : 0.00
+  }, {
+    "indice" : 2,
+    "lumaMinima" : 128,
+    "lumaMaxima" : 191,
+    "quantidade" : 0,
+    "percentual" : 0.00
+  }, {
+    "indice" : 3,
+    "lumaMinima" : 192,
+    "lumaMaxima" : 255,
+    "quantidade" : 70,
+    "percentual" : 70.00
+  } ]
+}
+```
+
+Quando 256 não divide igualmente pelo número de faixas, os limites são
+arredondados para cima: com 3 faixas, os intervalos são 0 a 85, 86 a 170 e 171
+a 255. Os intervalos sempre cobrem de 0 a 255 sem falhas nem sobreposição.
+
+Erros específicos:
+
+| Código | Causa |
+|---|---|
+| `PARAMETRO_INVALIDO` | `faixas` fora de 2 a 32 ou não inteiro, `ignorar_transparentes` não booleano ou `arquivo` inválido |
+| `PARAMETRO_AUSENTE` | falta `arquivo` |
+| `IMAGEM_NAO_ENCONTRADA`, `FORMATO_NAO_SUPORTADO`, `IMAGEM_INVALIDA`, `IMAGEM_MUITO_GRANDE` | iguais aos de `obter_informacoes` |
+
+---
+
 ### `calcular_contraste`
 
 Calcula a razão de contraste entre a cor do texto e a do fundo pela fórmula do

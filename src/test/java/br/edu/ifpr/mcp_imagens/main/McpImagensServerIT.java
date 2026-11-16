@@ -196,7 +196,8 @@ class McpImagensServerIT {
       assertEquals(Set.of("listar_imagens", "obter_informacoes",
                           "contar_pixels_da_cor", "cores_dominantes",
                           "proporcao_claro_escuro",
-                          "contar_pixels_transparentes", "calcular_contraste"),
+                          "contar_pixels_transparentes", "histograma_de_brilho",
+                          "calcular_contraste"),
                    client.listTools().tools().stream().map(Tool::name)
                          .collect(Collectors.toSet()));
    }
@@ -644,6 +645,76 @@ class McpImagensServerIT {
          assertErro("IMAGEM_INVALIDA",
                     chamar("contar_pixels_transparentes",
                            Map.of("arquivo", "falsa.png")));
+      }
+   }
+
+   @Nested
+   class HistogramaDeBrilho {
+      private JsonNode histograma(Map<String, Object> argumentos) {
+         CallToolResult resultado = chamar("histograma_de_brilho", argumentos);
+
+         assertFalse(resultado.isError(), Resultados.texto(resultado));
+         return Resultados.json(resultado);
+      }
+
+      @Test
+      void estaDisponivelComDescricaoESchema() {
+         assertFerramentaDisponivel("histograma_de_brilho");
+         assertDescricaoAvisaDaPasta("histograma_de_brilho");
+         assertEquals(List.of("arquivo"),
+                      ferramenta("histograma_de_brilho").inputSchema()
+                                                        .get("required"));
+      }
+
+      @Test
+      void vermelhoNaFaixaUmEBrancoNaUltima() {
+         // brilho do vermelho puro: 54 (faixa 32..63); do branco: 255
+         JsonNode faixas = histograma(Map.of("arquivo", "vermelho-branco.png"))
+                                     .get("faixas");
+
+         assertEquals(8, faixas.size());
+         assertEquals(30, faixas.get(1).get("quantidade").asLong());
+         assertEquals(70, faixas.get(7).get("quantidade").asLong());
+         assertEquals(0, faixas.get(0).get("quantidade").asLong());
+      }
+
+      @Test
+      void imagemDeUmTomSoPreencheUmaFaixa() {
+         // banner.png é todo #202020 (brilho 32)
+         JsonNode json = histograma(Map.of("arquivo", "banner.png"));
+
+         assertEquals(200, json.get("totalConsiderado").asLong());
+         assertEquals(200, json.get("faixas").get(1).get("quantidade")
+                              .asLong());
+      }
+
+      @Test
+      void quantidadeDeFaixasPedida() {
+         assertEquals(4, histograma(Map.of("arquivo", "banner.png",
+                                           "faixas", 4))
+                                .get("faixas").size());
+      }
+
+      @Test
+      void transparentesSaoIgnoradosPorPadrao() {
+         assertEquals(2, histograma(Map.of("arquivo", "alfas.png"))
+                             .get("totalConsiderado").asLong());
+      }
+
+      @Test
+      void faixasForaDoLimite() {
+         assertErro("PARAMETRO_INVALIDO",
+                    chamar("histograma_de_brilho",
+                           Map.of("arquivo", "banner.png", "faixas", 33)));
+      }
+
+      @Test
+      void errosDeArquivo() {
+         assertErro("PARAMETRO_AUSENTE",
+                    chamar("histograma_de_brilho", Map.of()));
+         assertErro("IMAGEM_NAO_ENCONTRADA",
+                    chamar("histograma_de_brilho",
+                           Map.of("arquivo", "nada.png")));
       }
    }
 
