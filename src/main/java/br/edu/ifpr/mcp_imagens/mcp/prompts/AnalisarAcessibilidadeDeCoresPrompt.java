@@ -43,19 +43,10 @@ public class AnalisarAcessibilidadeDeCoresPrompt extends AbstractPrompt {
             ferramentas do servidor mcp-imagens. Não estime números a olho: \
             use só valores medidos pelas ferramentas.
 
-            1. Chame cores_dominantes com arquivo '%s', quantidade 5 e passo \
-            8. Com passo maior que 1, cada cor é o centro de um grupo de \
-            cores parecidas, e não necessariamente uma cor exata da imagem; \
-            diga isso na resposta.
-            2. Considere a cor mais frequente como o fundo e as demais como \
-            possíveis cores de texto ou de elementos. Para cada par, chame \
-            calcular_contraste (cor_texto e cor_fundo).
-            3. Interprete os vereditos do WCAG de cada par: AA e AAA, para \
-            texto normal e texto grande, e componentes de interface. Se \
-            precisar dos limiares, leia o resource imagens://criterios-wcag.
-            4. Recomende ajustes para os pares que não passam, por exemplo \
-            escurecer o texto ou clarear o fundo, e confirme a sugestão \
-            chamando calcular_contraste de novo.
+            1. Chame contraste_das_cores_dominantes com arquivo '%s' e             passo_de_agrupamento 1. Ele devolve o contraste WCAG entre as             duas cores mais frequentes (a mais frequente como fundo), com o             veredito de cada critério. É uma aproximação: o servidor não             detecta onde está o texto; diga isso na resposta.
+            2. Chame cores_dominantes com arquivo '%s', quantidade 5 e             passo_de_agrupamento 1 para ver as demais cores. Se houver             outros pares de cores relevantes, chame calcular_contraste para             cada um (cor_texto e cor_fundo).
+            3. Interprete os vereditos do WCAG de cada par: AA e AAA, para             texto normal e texto grande, e componentes de interface. Se             precisar dos limiares, leia o resource imagens://criterios-wcag.
+            4. Recomende ajustes para os pares que não passam, por exemplo             escurecer o texto ou clarear o fundo, e confirme a sugestão             chamando calcular_contraste de novo.
 
             Regras:
             - Afirme apenas o que os números sustentam. Você não sabe qual \
@@ -68,6 +59,6 @@ public class AnalisarAcessibilidadeDeCoresPrompt extends AbstractPrompt {
 
             Formato da resposta: uma tabela com as colunas par de cores, \
             razão de contraste e vereditos, seguida de recomendações curtas.
-            """.formatted(arquivo, arquivo);
+            """.formatted(arquivo, arquivo, arquivo);
    }
 }

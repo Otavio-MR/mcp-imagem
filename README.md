@@ -10,12 +10,13 @@ e UX que querem checar imagens, paletas e contraste (critérios WCAG).
 O servidor **não chama nenhuma IA**: ele mede e calcula. A interpretação ("isso
 é um problema de acessibilidade?") fica com a IA.
 
-> **Status:** em construção. Este arquivo documenta, por enquanto, as nove
-> ferramentas de análise do servidor (`listar_imagens`, `obter_informacoes`,
+> **Status:** em construção. Este arquivo documenta, por enquanto, as onze
+> ferramentas do servidor (`listar_imagens`, `obter_informacoes`,
 > `contar_pixels_da_cor`, `cores_dominantes`, `proporcao_claro_escuro`,
-> `contar_pixels_transparentes`, `histograma_de_brilho`, `comparar_imagens` e
-> `calcular_contraste`), os resources, os prompts e o cliente. O Claude Desktop e
-> o MCP Inspector serão acrescentados nas próximas fases.
+> `contar_pixels_transparentes`, `histograma_de_brilho`, `comparar_imagens`,
+> `verificar_paleta`, `contraste_das_cores_dominantes` e `calcular_contraste`),
+> os resources, os prompts e o cliente. O Claude Desktop e o MCP Inspector
+> serão acrescentados nas próximas fases.
 
 ## Convenções
 
@@ -250,22 +251,22 @@ Erros nos parâmetros são verificados antes de abrir a imagem.
 
 Lista as cores que mais aparecem na imagem, com a quantidade exata de pixels e
 o percentual de cada uma. Cores parecidas são agrupadas: cada canal (vermelho,
-verde, azul) é dividido em faixas de `passo` valores, e pixels cujos três
+verde, azul) é dividido em faixas de `passo_de_agrupamento` valores, e pixels cujos três
 canais caem nas mesmas faixas formam um grupo.
 
 | Parâmetro | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
 | `arquivo` | string | sim | nome do arquivo, como mostrado por `listar_imagens` |
 | `quantidade` | inteiro 1 a 20 | não (padrão 5) | quantas cores devolver |
-| `passo` | inteiro 1 a 128 | não (padrão 32) | tamanho da faixa de cada canal; 1 = cores exatas, maior = grupos mais amplos |
+| `passo_de_agrupamento` | inteiro 1 a 128 | não (padrão 32) | tamanho da faixa de cada canal; 1 = cores exatas, maior = grupos mais amplos |
 | `ignorar_transparentes` | booleano | não (padrão `true`) | se `true`, pixels com alfa 0 não entram na conta |
 
-Exemplo de chamada: `{"arquivo": "vermelho-branco.png", "quantidade": 2, "passo": 1}`
+Exemplo de chamada: `{"arquivo": "vermelho-branco.png", "quantidade": 2, "passo_de_agrupamento": 1}`
 
 ```json
 {
   "arquivo" : "vermelho-branco.png",
-  "passo" : 1,
+  "passoDeAgrupamento" : 1,
   "ignorarTransparentes" : true,
   "totalConsiderado" : 100,
   "gruposDistintos" : 2,
@@ -283,9 +284,9 @@ Exemplo de chamada: `{"arquivo": "vermelho-branco.png", "quantidade": 2, "passo"
 
 Como ler o resultado:
 
-- Com `passo` maior que 1, a `cor` de cada grupo é o **centro da faixa** em
+- Com `passo_de_agrupamento` maior que 1, a `cor` de cada grupo é o **centro da faixa** em
   cada canal (no máximo 255), e não uma cor que exista na imagem. Por exemplo,
-  com passo 32 o branco aparece como `#F0F0F0`. Use `passo` 1 para obter as
+  com passo 32 o branco aparece como `#F0F0F0`. Use `passo_de_agrupamento` 1 para obter as
   cores exatas.
 - `gruposDistintos` conta todos os grupos da imagem, mesmo os que não couberam
   em `quantidade`.
@@ -298,7 +299,7 @@ Erros específicos:
 
 | Código | Causa |
 |---|---|
-| `PARAMETRO_INVALIDO` | `quantidade` fora de 1 a 20, `passo` fora de 1 a 128, valor não inteiro, `ignorar_transparentes` não booleano ou `arquivo` inválido |
+| `PARAMETRO_INVALIDO` | `quantidade` fora de 1 a 20, `passo_de_agrupamento` fora de 1 a 128, valor não inteiro, `ignorar_transparentes` não booleano ou `arquivo` inválido |
 | `PARAMETRO_AUSENTE` | falta `arquivo` |
 | `IMAGEM_NAO_ENCONTRADA`, `FORMATO_NAO_SUPORTADO`, `IMAGEM_INVALIDA`, `IMAGEM_MUITO_GRANDE` | iguais aos de `obter_informacoes` |
 
@@ -525,6 +526,135 @@ Erros específicos:
 
 ---
 
+### `verificar_paleta`
+
+Verifica se a imagem usa só as cores de uma **paleta**: devolve quantos pixels
+(e que percentual) estão dentro dela e quantos estão fora, e as 5 cores exatas
+que mais aparecem fora. Serve para conferir se um design respeita a identidade
+visual.
+
+| Parâmetro | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `arquivo` | string | sim | nome do arquivo, como mostrado por `listar_imagens` |
+| `cores_permitidas` | string | sim | de 1 a 30 cores separadas por vírgula, cada uma em `#RRGGBB`, `#RGB` ou nome (ex.: `#FFFFFF, #000000, azul`) |
+| `tolerancia` | inteiro 0 a 255 | não (padrão 0) | diferença máxima por canal para um pixel contar como uma cor da paleta |
+| `ignorar_transparentes` | booleano | não (padrão `true`) | se `true`, pixels com alfa 0 não entram na conta |
+
+Exemplo de chamada: `{"arquivo": "vermelho-branco.png", "cores_permitidas": "vermelho, #0000FF"}`
+
+```json
+{
+  "arquivo" : "vermelho-branco.png",
+  "coresPermitidas" : [ "#FF0000", "#0000FF" ],
+  "tolerancia" : 0,
+  "ignorarTransparentes" : true,
+  "totalConsiderado" : 100,
+  "dentroDaPaleta" : {
+    "quantidade" : 30,
+    "percentual" : 30.00
+  },
+  "foraDaPaleta" : {
+    "quantidade" : 70,
+    "percentual" : 70.00
+  },
+  "coresForaDaPaleta" : [ {
+    "cor" : "#FFFFFF",
+    "quantidade" : 70,
+    "percentual" : 100.00
+  } ]
+}
+```
+
+Como ler o resultado:
+
+- `coresPermitidas` mostra a paleta em hexadecimal, sem repetições.
+- `coresForaDaPaleta` traz até 5 cores **exatas** (sem agrupamento), da mais
+  frequente para a menos frequente; em empate, vem primeiro o hexadecimal
+  menor. O `percentual` de cada uma é sobre os pixels **fora da paleta**, e
+  não sobre a imagem inteira. Se tudo está dentro da paleta, a lista vem vazia.
+- A comparação com a paleta usa só os canais vermelho, verde e azul (o alfa não
+  entra), como em `contar_pixels_da_cor`.
+
+Erros específicos:
+
+| Código | Causa |
+|---|---|
+| `COR_INVALIDA` | uma cor da lista não é válida; a mensagem indica o item (`parâmetro 'cores_permitidas (item 2)': cor desconhecida: 'xablau'; ...`) |
+| `PARAMETRO_INVALIDO` | lista com item vazio (`vermelho,,branco`), com mais de 30 cores, `tolerancia` fora de 0 a 255, ou `arquivo` inválido |
+| `PARAMETRO_AUSENTE` | falta `arquivo` ou `cores_permitidas` |
+| `IMAGEM_NAO_ENCONTRADA`, `FORMATO_NAO_SUPORTADO`, `IMAGEM_INVALIDA`, `IMAGEM_MUITO_GRANDE` | iguais aos de `obter_informacoes` |
+
+---
+
+### `contraste_das_cores_dominantes`
+
+Pega as **duas cores que mais aparecem** na imagem e calcula o contraste entre
+elas pelo WCAG 2.x, com o veredito de cada critério (os mesmos de
+`calcular_contraste`). A cor mais frequente é tratada como o fundo, e a segunda
+como o texto.
+
+> **É uma aproximação.** O servidor não detecta onde está o texto: a
+> ferramenta só faz sentido para telas e banners com texto sobre um fundo liso.
+> O resultado sempre traz esse aviso no campo `avisos`.
+
+| Parâmetro | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `arquivo` | string | sim | nome do arquivo, como mostrado por `listar_imagens` |
+| `passo_de_agrupamento` | inteiro 1 a 128 | não (padrão 32) | tamanho da faixa de cada canal, como em `cores_dominantes`; 1 = cores exatas |
+
+Os pixels totalmente transparentes são sempre ignorados.
+
+Exemplo de chamada: `{"arquivo": "vermelho-branco.png", "passo_de_agrupamento": 1}`
+
+```json
+{
+  "arquivo" : "vermelho-branco.png",
+  "passoDeAgrupamento" : 1,
+  "totalConsiderado" : 100,
+  "coresDominantes" : [ {
+    "cor" : "#FFFFFF",
+    "quantidade" : 70,
+    "percentual" : 70.00
+  }, {
+    "cor" : "#FF0000",
+    "quantidade" : 30,
+    "percentual" : 30.00
+  } ],
+  "contraste" : {
+    "corTexto" : "#FF0000",
+    "corFundo" : "#FFFFFF",
+    "razao" : 4.00,
+    "vereditos" : [ {
+      "criterio" : "aa_texto_normal",
+      "nome" : "AA texto normal",
+      "limiar" : 4.5,
+      "passa" : false
+    }, ... ]
+  },
+  "avisos" : [ "Aproximação: o servidor não detecta o texto da imagem. ..." ]
+}
+```
+
+(`vereditos` resumido aqui: no resultado real vêm os cinco critérios.)
+
+Casos especiais:
+
+| Situação | Resultado |
+|---|---|
+| imagem com uma única cor dominante | `coresDominantes` tem um item, `razao` é 1.00 (nenhum critério passa) e `avisos` traz "A imagem tem uma única cor dominante..." |
+| imagem toda transparente | `coresDominantes` vem vazia, `contraste` é `null` e `avisos` explica que não há pixels para analisar |
+| `passo_de_agrupamento` maior que 1 | `avisos` acrescenta que cada cor é o centro de um grupo de cores parecidas, e não uma cor exata; por isso a razão pode diferir da real. Use 1 para as cores exatas |
+
+Erros específicos:
+
+| Código | Causa |
+|---|---|
+| `PARAMETRO_INVALIDO` | `passo_de_agrupamento` fora de 1 a 128 ou não inteiro, ou `arquivo` inválido |
+| `PARAMETRO_AUSENTE` | falta `arquivo` |
+| `IMAGEM_NAO_ENCONTRADA`, `FORMATO_NAO_SUPORTADO`, `IMAGEM_INVALIDA`, `IMAGEM_MUITO_GRANDE` | iguais aos de `obter_informacoes` |
+
+---
+
 ### `calcular_contraste`
 
 Calcula a razão de contraste entre a cor do texto e a do fundo pela fórmula do
@@ -645,12 +775,15 @@ critérios do WCAG.
 |---|---|---|
 | `arquivo` | sim | nome do arquivo da imagem, como mostrado por `listar_imagens` |
 
-A instrução pede, em ordem: chamar `cores_dominantes`, chamar
-`calcular_contraste` para os pares de cores (a mais frequente como fundo),
-interpretar os vereditos do WCAG (consultando `imagens://criterios-wcag`) e
-recomendar ajustes, confirmando-os com `calcular_contraste`. A IA é orientada a
-afirmar só o que os números sustentam e a tratar o resultado como contraste
-entre **pares de cores**, já que o servidor não sabe qual cor é texto.
+A instrução pede, em ordem: chamar `contraste_das_cores_dominantes` (que
+devolve o contraste entre as duas cores mais frequentes, com os vereditos),
+chamar `cores_dominantes` para ver as demais cores e `calcular_contraste` para
+outros pares relevantes, interpretar os vereditos do WCAG (consultando
+`imagens://criterios-wcag`) e recomendar ajustes, confirmando-os com
+`calcular_contraste`. A IA é orientada a afirmar só o que os números sustentam,
+a avisar que o contraste das cores dominantes é uma aproximação e a tratar o
+resultado como contraste entre **pares de cores**, já que o servidor não sabe
+qual cor é texto.
 
 ### `descrever_composicao_de_cores`
 

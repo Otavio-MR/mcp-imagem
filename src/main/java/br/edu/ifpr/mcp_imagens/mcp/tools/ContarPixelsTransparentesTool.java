@@ -1,9 +1,7 @@
 package br.edu.ifpr.mcp_imagens.mcp.tools;
 
-import java.math.BigDecimal;
-
-import br.edu.ifpr.mcp_imagens.domain.model.Arredondamento;
 import br.edu.ifpr.mcp_imagens.domain.model.Imagem;
+import br.edu.ifpr.mcp_imagens.domain.model.Parcela;
 import br.edu.ifpr.mcp_imagens.domain.model.ResultadoTransparencia;
 import br.edu.ifpr.mcp_imagens.infra.repository.ImagemRepository;
 import br.edu.ifpr.mcp_imagens.mcp.utils.AbstractTool;
@@ -16,13 +14,10 @@ import br.edu.ifpr.mcp_imagens.service.AnalisadorDeTransparencia;
  * transparentes, semitransparentes e opacos.
  */
 public class ContarPixelsTransparentesTool extends AbstractTool {
-   /** Quantidade e percentual de um tipo de pixel. */
-   public record Parte(long quantidade, BigDecimal percentual) {}
-
    /** Formato da resposta de sucesso. */
    public record Resultado(String arquivo, boolean temCanalAlfa,
-                           long totalPixels, Parte transparentes,
-                           Parte semitransparentes, Parte opacos) {}
+                           long totalPixels, Parcela transparentes,
+                           Parcela semitransparentes, Parcela opacos) {}
 
    private final ImagemRepository          repositorio;
    private final AnalisadorDeTransparencia analisador;
@@ -67,13 +62,8 @@ public class ContarPixelsTransparentesTool extends AbstractTool {
       long                   total    = contagem.total();
 
       return new Resultado(arquivo, imagem.temCanalAlfa(), total,
-                           parte(contagem.transparentes(), total),
-                           parte(contagem.semitransparentes(), total),
-                           parte(contagem.opacos(), total));
-   }
-
-   private static Parte parte(long quantidade, long total) {
-      return new Parte(quantidade, Arredondamento.percentual(quantidade,
-                                                             total));
+                           Parcela.de(contagem.transparentes(), total),
+                           Parcela.de(contagem.semitransparentes(), total),
+                           Parcela.de(contagem.opacos(), total));
    }
 }

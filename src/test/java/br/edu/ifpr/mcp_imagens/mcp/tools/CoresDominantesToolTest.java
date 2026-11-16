@@ -44,7 +44,7 @@ class CoresDominantesToolTest {
 
    @Test
    void devolveAsCoresMaisFrequentesComPercentual() {
-      JsonNode json = cores(Map.of("arquivo", "a.png", "passo", 1));
+      JsonNode json = cores(Map.of("arquivo", "a.png", "passo_de_agrupamento", 1));
       JsonNode lista = json.get("cores");
 
       assertEquals(2, lista.size());
@@ -66,7 +66,7 @@ class CoresDominantesToolTest {
 
    @Test
    void semIgnorarTransparentesAparecemComoPreto() {
-      JsonNode json = cores(Map.of("arquivo", "a.png", "passo", 1,
+      JsonNode json = cores(Map.of("arquivo", "a.png", "passo_de_agrupamento", 1,
                                    "ignorar_transparentes", false));
 
       assertEquals(100, json.get("totalConsiderado").asLong());
@@ -77,7 +77,7 @@ class CoresDominantesToolTest {
    void padroesSaoCincoCoresEPasso32() {
       JsonNode json = cores(Map.of("arquivo", "a.png"));
 
-      assertEquals(32, json.get("passo").asInt());
+      assertEquals(32, json.get("passoDeAgrupamento").asInt());
       // com passo 32 as cores saem pelo centro da faixa
       assertEquals("#F0F0F0", json.get("cores").get(0).get("cor").asString());
    }
@@ -101,7 +101,7 @@ class CoresDominantesToolTest {
    @ParameterizedTest
    @ValueSource(ints = { 0, 129, -5 })
    void passoForaDaFaixa(int passo) {
-      String texto = erroCom(Map.of("arquivo", "a.png", "passo", passo));
+      String texto = erroCom(Map.of("arquivo", "a.png", "passo_de_agrupamento", passo));
 
       assertTrue(texto.startsWith("PARAMETRO_INVALIDO: "), texto);
       assertTrue(texto.contains("entre 1 e 128"), texto);
@@ -109,8 +109,8 @@ class CoresDominantesToolTest {
 
    @Test
    void limitesSaoAceitos() {
-      cores(Map.of("arquivo", "a.png", "quantidade", 1, "passo", 1));
-      cores(Map.of("arquivo", "a.png", "quantidade", 20, "passo", 128));
+      cores(Map.of("arquivo", "a.png", "quantidade", 1, "passo_de_agrupamento", 1));
+      cores(Map.of("arquivo", "a.png", "quantidade", 20, "passo_de_agrupamento", 128));
    }
 
    @Test
@@ -129,7 +129,7 @@ class CoresDominantesToolTest {
 
    @Test
    void erroDeParametroVemAntesDoErroDeArquivo() {
-      assertTrue(erroCom(Map.of("arquivo", "nada.png", "passo", 0))
+      assertTrue(erroCom(Map.of("arquivo", "nada.png", "passo_de_agrupamento", 0))
                     .startsWith("PARAMETRO_INVALIDO: "));
    }
 
@@ -148,14 +148,14 @@ class CoresDominantesToolTest {
       Map<?, ?> propriedades = (Map<?, ?>) FERRAMENTA.schema().comoMapa()
                                                      .get("properties");
 
-      assertEquals(Set.of("arquivo", "quantidade", "passo",
+      assertEquals(Set.of("arquivo", "quantidade", "passo_de_agrupamento",
                           "ignorar_transparentes"),
                    FERRAMENTA.schema().nomesDosParametros());
       assertEquals(List.of("arquivo"),
                    FERRAMENTA.schema().comoMapa().get("required"));
       assertEquals(5, ((Map<?, ?>) propriedades.get("quantidade"))
                             .get("default"));
-      assertEquals(32, ((Map<?, ?>) propriedades.get("passo")).get("default"));
+      assertEquals(32, ((Map<?, ?>) propriedades.get("passo_de_agrupamento")).get("default"));
       assertTrue(FERRAMENTA.descricao().contains("pasta de imagens"));
       assertTrue(FERRAMENTA.descricao().contains("anexadas à conversa NÃO"));
       assertEquals(NOME, FERRAMENTA.nome());

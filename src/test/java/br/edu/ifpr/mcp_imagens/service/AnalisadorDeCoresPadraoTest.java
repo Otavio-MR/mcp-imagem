@@ -167,4 +167,25 @@ class AnalisadorDeCoresPadraoTest {
       assertEquals(4, r.cores().get(0).quantidade());
       assertEquals(new BigDecimal("1.56"), r.cores().get(0).percentual());
    }
+
+   @Test
+   void filtroContaSoOsPixelsAceitos() {
+      // só os pixels que não são brancos
+      ResultadoCoresDominantes r = analisador.coresDominantes(cinco, 5, 1,
+            true, argb -> argb != BRANCO);
+
+      assertEquals(7, r.totalConsiderado());
+      assertEquals(List.of("#FF0000", "#000000"), hexes(r));
+      assertEquals(new BigDecimal("71.43"), r.cores().get(0).percentual());
+   }
+
+   @Test
+   void filtroQueNaoAceitaNadaDeixaOResultadoVazio() {
+      ResultadoCoresDominantes r = analisador.coresDominantes(cinco, 5, 1,
+            true, argb -> false);
+
+      assertEquals(0, r.totalConsiderado());
+      assertEquals(0, r.gruposDistintos());
+      assertEquals(List.of(), r.cores());
+   }
 }

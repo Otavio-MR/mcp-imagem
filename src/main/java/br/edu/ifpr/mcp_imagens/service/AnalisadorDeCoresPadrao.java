@@ -5,6 +5,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.PriorityQueue;
 
+import br.edu.ifpr.mcp_imagens.domain.criterio.CriterioDePixel;
 import br.edu.ifpr.mcp_imagens.domain.model.Arredondamento;
 import br.edu.ifpr.mcp_imagens.domain.model.Cor;
 import br.edu.ifpr.mcp_imagens.domain.model.CorDominante;
@@ -26,15 +27,18 @@ public class AnalisadorDeCoresPadrao implements AnalisadorDeCores {
                                             .reversed());
 
    @Override
-   public ResultadoCoresDominantes coresDominantes(Imagem imagem,
-                                                   int quantidade, int passo,
-                                                   boolean ignorarTransparentes) {
+   public ResultadoCoresDominantes coresDominantes(
+                     Imagem imagem, int quantidade, int passo,
+                     boolean ignorarTransparentes, CriterioDePixel filtro) {
       // faixas por canal: 256 / passo, arredondado para cima
       int     faixas   = (256 + passo - 1) / passo;
       int[]   contagem = new int[faixas * faixas * faixas];
       long[]  total    = new long[1];
 
       imagem.paraCadaPixel(ignorarTransparentes, argb -> {
+         if (!filtro.aceita(argb))
+            return;
+
          int r = ((argb >> 16) & 0xFF) / passo;
          int g = ((argb >> 8) & 0xFF) / passo;
          int b = (argb & 0xFF) / passo;

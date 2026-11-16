@@ -45,8 +45,11 @@ class PromptsTest {
       String texto = texto(resultado);
 
       assertTrue(texto.contains("'banner.png'"), texto);
-      assertTrue(texto.contains("cores_dominantes"), texto);
+      assertTrue(texto.contains("contraste_das_cores_dominantes"), texto);
+      assertTrue(texto.contains("cores_dominantes com arquivo 'banner.png'"),
+                 texto);
       assertTrue(texto.contains("calcular_contraste"), texto);
+      assertTrue(texto.contains("aproximação"), texto);
       assertTrue(texto.contains("imagens://criterios-wcag"), texto);
       assertTrue(texto.contains("Afirme apenas o que os números sustentam"),
                  texto);
@@ -58,6 +61,8 @@ class PromptsTest {
       String texto = texto(obter(analisar, "analisar_acessibilidade_de_cores",
                                  Map.of("arquivo", "foto.jpg")));
 
+      assertTrue(texto.contains("contraste_das_cores_dominantes com arquivo " +
+                                "'foto.jpg'"), texto);
       assertTrue(texto.contains("cores_dominantes com arquivo 'foto.jpg'"),
                  texto);
    }

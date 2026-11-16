@@ -1,10 +1,8 @@
 package br.edu.ifpr.mcp_imagens.mcp.tools;
 
-import java.math.BigDecimal;
-
-import br.edu.ifpr.mcp_imagens.domain.model.Arredondamento;
 import br.edu.ifpr.mcp_imagens.domain.model.CaixaDelimitadora;
 import br.edu.ifpr.mcp_imagens.domain.model.Imagem;
+import br.edu.ifpr.mcp_imagens.domain.model.Parcela;
 import br.edu.ifpr.mcp_imagens.domain.model.ResultadoComparacao;
 import br.edu.ifpr.mcp_imagens.infra.repository.ImagemRepository;
 import br.edu.ifpr.mcp_imagens.mcp.utils.AbstractTool;
@@ -17,14 +15,11 @@ import br.edu.ifpr.mcp_imagens.service.ComparadorDeImagens;
  * pixel a pixel.
  */
 public class CompararImagensTool extends AbstractTool {
-   /** Quantidade e percentual de um tipo de pixel. */
-   public record Parte(long quantidade, BigDecimal percentual) {}
-
    /** Formato da resposta de sucesso. */
    public record Resultado(String arquivoA, String arquivoB, int largura,
                            int altura, long totalPixels, int tolerancia,
-                           boolean identicas, Parte pixelsIguais,
-                           Parte pixelsDiferentes,
+                           boolean identicas, Parcela pixelsIguais,
+                           Parcela pixelsDiferentes,
                            CaixaDelimitadora regiaoDiferente) {}
 
    private final ImagemRepository   repositorio;
@@ -89,13 +84,8 @@ public class CompararImagensTool extends AbstractTool {
 
       return new Resultado(arquivoA, arquivoB, a.largura(), a.altura(), total,
                            tolerancia, comparacao.pixelsDiferentes() == 0,
-                           parte(comparacao.pixelsIguais(), total),
-                           parte(comparacao.pixelsDiferentes(), total),
+                           Parcela.de(comparacao.pixelsIguais(), total),
+                           Parcela.de(comparacao.pixelsDiferentes(), total),
                            comparacao.regiaoDiferente());
-   }
-
-   private static Parte parte(long quantidade, long total) {
-      return new Parte(quantidade, Arredondamento.percentual(quantidade,
-                                                             total));
    }
 }

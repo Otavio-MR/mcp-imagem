@@ -1,5 +1,6 @@
 package br.edu.ifpr.mcp_imagens.service;
 
+import br.edu.ifpr.mcp_imagens.domain.criterio.CriterioDePixel;
 import br.edu.ifpr.mcp_imagens.domain.model.Imagem;
 import br.edu.ifpr.mcp_imagens.domain.model.ResultadoCoresDominantes;
 
@@ -26,7 +27,20 @@ public interface AnalisadorDeCores {
     * @param passo                largura de cada faixa de canal (1 a 128)
     * @param ignorarTransparentes se {@code true}, pixels com alfa 0 não entram
     */
+   default ResultadoCoresDominantes coresDominantes(
+                     Imagem imagem, int quantidade, int passo,
+                     boolean ignorarTransparentes) {
+      return coresDominantes(imagem, quantidade, passo, ignorarTransparentes,
+                             argb -> true);
+   }
+
+   /**
+    * Igual ao método sem filtro, mas só os pixels que o critério aceita são
+    * contados (o total considerado e os percentuais também se referem só a
+    * eles).
+    */
    ResultadoCoresDominantes coresDominantes(Imagem imagem, int quantidade,
                                             int passo,
-                                            boolean ignorarTransparentes);
+                                            boolean ignorarTransparentes,
+                                            CriterioDePixel filtro);
 }

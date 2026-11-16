@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.Test;
@@ -12,6 +13,7 @@ import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import br.edu.ifpr.mcp_imagens.domain.exception.CorInvalidaException;
+import br.edu.ifpr.mcp_imagens.domain.exception.ParametroInvalidoException;
 import br.edu.ifpr.mcp_imagens.domain.model.Cor;
 
 class CorParserTest {
@@ -110,5 +112,54 @@ class CorParserTest {
       assertEquals(new Cor(1, 2, 3), semNomes.parse("#010203"));
       assertThrows(CorInvalidaException.class,
                    () -> semNomes.parse("vermelho"));
+   }
+
+   @Test
+   void listaMisturaNomesEHexComEspacos() {
+      assertEquals(List.of(new Cor(255, 0, 0), new Cor(0, 0, 255),
+                           new Cor(0, 255, 0)),
+                   PARSER.parseLista("vermelho , #00F,#0F0", "paleta", 30));
+   }
+
+   @Test
+   void listaComUmaCorSo() {
+      assertEquals(List.of(new Cor(255, 0, 0)),
+                   PARSER.parseLista("#F00", "paleta", 30));
+   }
+
+   @Test
+   void listaIndicaOItemInvalido() {
+      CorInvalidaException e = assertThrows(CorInvalidaException.class,
+            () -> PARSER.parseLista("vermelho, xablau, #FFF", "paleta", 30));
+
+      assertTrue(e.getMessage().startsWith("parâmetro 'paleta (item 2)': "),
+                 e.getMessage());
+      assertTrue(e.getMessage().contains("'xablau'"), e.getMessage());
+   }
+
+   @ParameterizedTest
+   @ValueSource(strings = { "vermelho,,#FFF", ",", "vermelho,", ",vermelho",
+                            "vermelho, ,#FFF" })
+   void listaComItemVazioEParametroInvalido(String lista) {
+      ParametroInvalidoException e = assertThrows(
+            ParametroInvalidoException.class,
+            () -> PARSER.parseLista(lista, "paleta", 30));
+
+      assertTrue(e.getMessage().contains("item vazio"), e.getMessage());
+   }
+
+   @Test
+   void listaNoLimiteEAceitaEAcimaDoLimiteNao() {
+      String trinta   = String.join(",", java.util.Collections.nCopies(30, "#FFF"));
+      String trintaEUm = trinta + ",#FFF";
+
+      assertEquals(30, PARSER.parseLista(trinta, "paleta", 30).size());
+
+      ParametroInvalidoException e = assertThrows(
+            ParametroInvalidoException.class,
+            () -> PARSER.parseLista(trintaEUm, "paleta", 30));
+
+      assertEquals("'paleta' aceita no máximo 30 cores (recebido: 31)",
+                   e.getMessage());
    }
 }

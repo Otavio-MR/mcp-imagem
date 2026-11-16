@@ -17,7 +17,7 @@ import br.edu.ifpr.mcp_imagens.service.AnalisadorDeCores;
  */
 public class CoresDominantesTool extends AbstractTool {
    /** Formato da resposta de sucesso. */
-   public record Resultado(String arquivo, int passo,
+   public record Resultado(String arquivo, int passoDeAgrupamento,
                            boolean ignorarTransparentes, long totalConsiderado,
                            int gruposDistintos, List<CorDominante> cores) {}
 
@@ -44,10 +44,11 @@ public class CoresDominantesTool extends AbstractTool {
    protected String descricao() {
       return "Lista as cores que mais aparecem na imagem, com a quantidade " +
              "exata de pixels e o percentual de cada uma. Cores parecidas são " +
-             "agrupadas (parâmetro passo) e cada grupo é mostrado pela cor " +
-             "central da sua faixa; com passo 1 não há agrupamento e saem as " +
-             "cores exatas. Por padrão ignora os pixels totalmente " +
-             "transparentes. " + TextosDasFerramentas.ARQUIVO_NA_PASTA;
+             "agrupadas (parâmetro passo_de_agrupamento) e cada grupo é " +
+             "mostrado pela cor central da sua faixa; com passo 1 não há " +
+             "agrupamento e saem as cores exatas. Por padrão ignora os " +
+             "pixels totalmente transparentes. " +
+             TextosDasFerramentas.ARQUIVO_NA_PASTA;
    }
 
    @Override
@@ -58,9 +59,10 @@ public class CoresDominantesTool extends AbstractTool {
                              AnalisadorDeCores.QUANTIDADE_MINIMA,
                              AnalisadorDeCores.QUANTIDADE_MAXIMA,
                              AnalisadorDeCores.QUANTIDADE_PADRAO)
-            .inteiroOpcional("passo", "Tamanho da faixa de cada canal de " +
-                             "cor usada para agrupar cores parecidas (1 = " +
-                             "cores exatas; maior = grupos mais amplos)",
+            .inteiroOpcional("passo_de_agrupamento", "Tamanho da faixa de " +
+                             "cada canal de cor usada para agrupar cores " +
+                             "parecidas (1 = cores exatas; maior = grupos " +
+                             "mais amplos)",
                              AnalisadorDeCores.PASSO_MINIMO,
                              AnalisadorDeCores.PASSO_MAXIMO,
                              AnalisadorDeCores.PASSO_PADRAO)
@@ -79,7 +81,8 @@ public class CoresDominantesTool extends AbstractTool {
                                  AnalisadorDeCores.QUANTIDADE_MINIMA,
                                  AnalisadorDeCores.QUANTIDADE_MAXIMA);
       int     passo      = argumentos.inteiroOpcional(
-                                 "passo", AnalisadorDeCores.PASSO_PADRAO,
+                                 "passo_de_agrupamento",
+                                 AnalisadorDeCores.PASSO_PADRAO,
                                  AnalisadorDeCores.PASSO_MINIMO,
                                  AnalisadorDeCores.PASSO_MAXIMO);
       boolean ignorar    = argumentos.booleanoOpcional("ignorar_transparentes",

@@ -207,7 +207,9 @@ class McpImagensServerIT {
                           "contar_pixels_da_cor", "cores_dominantes",
                           "proporcao_claro_escuro",
                           "contar_pixels_transparentes", "histograma_de_brilho",
-                          "comparar_imagens", "calcular_contraste"),
+                          "comparar_imagens", "verificar_paleta",
+                          "contraste_das_cores_dominantes",
+                          "calcular_contraste"),
                    client.listTools().tools().stream().map(Tool::name)
                          .collect(Collectors.toSet()));
    }
@@ -618,7 +620,7 @@ class McpImagensServerIT {
       @Test
       void coresExatasComPassoUm() {
          JsonNode json  = dominantes(Map.of("arquivo", "vermelho-branco.png",
-                                            "passo", 1));
+                                            "passo_de_agrupamento", 1));
          JsonNode lista = json.get("cores");
 
          assertEquals(100, json.get("totalConsiderado").asLong());
@@ -632,7 +634,7 @@ class McpImagensServerIT {
       @Test
       void passoAgrupaOPixelQuaseVermelho() {
          assertEquals(3, dominantes(Map.of("arquivo", "quase-vermelho.png",
-                                           "passo", 1))
+                                           "passo_de_agrupamento", 1))
                              .get("gruposDistintos").asInt());
          assertEquals(2, dominantes(Map.of("arquivo", "quase-vermelho.png"))
                              .get("gruposDistintos").asInt());
@@ -655,7 +657,7 @@ class McpImagensServerIT {
       void passoForaDaFaixa() {
          assertErro("PARAMETRO_INVALIDO",
                     chamar("cores_dominantes",
-                           Map.of("arquivo", "banner.png", "passo", 129)));
+                           Map.of("arquivo", "banner.png", "passo_de_agrupamento", 129)));
       }
 
       @Test
@@ -934,6 +936,170 @@ class McpImagensServerIT {
                            Map.of("arquivo_a", "banner.png",
                                   "arquivo_b", "banner.png",
                                   "tolerancia", 256)));
+      }
+   }
+
+   @Nested
+   class VerificarPaleta {
+      private JsonNode verificar(Map<String, Object> argumentos) {
+         CallToolResult resultado = chamar("verificar_paleta", argumentos);
+
+         assertFalse(resultado.isError(), Resultados.texto(resultado));
+         return Resultados.json(resultado);
+      }
+
+      @Test
+      void estaDisponivelComDescricaoESchema() {
+         assertFerramentaDisponivel("verificar_paleta");
+         assertDescricaoAvisaDaPasta("verificar_paleta");
+         assertEquals(List.of("arquivo", "cores_permitidas"),
+                      ferramenta("verificar_paleta").inputSchema()
+                                                    .get("required"));
+      }
+
+      @Test
+      void soOVermelhoNaPaletaDeixaOBrancoFora() {
+         JsonNode json = verificar(Map.of("arquivo", "vermelho-branco.png",
+                                          "cores_permitidas", "vermelho"));
+
+         assertEquals(30, json.get("dentroDaPaleta").get("quantidade")
+                              .asLong());
+         assertEquals(70, json.get("foraDaPaleta").get("quantidade").asLong());
+         assertEquals(1, json.get("coresForaDaPaleta").size());
+         assertEquals("#FFFFFF", json.get("coresForaDaPaleta").get(0)
+                                     .get("cor").asString());
+      }
+
+      @Test
+      void paletaCompletaDeixaTudoDentro() {
+         JsonNode json = verificar(Map.of("arquivo", "vermelho-branco.png",
+                                          "cores_permitidas",
+                                          "#F00, branco"));
+
+         assertEquals(100.0, json.get("dentroDaPaleta").get("percentual")
+                             .asDouble(), 0);
+         assertEquals(0, json.get("coresForaDaPaleta").size());
+      }
+
+      @Test
+      void toleranciaIncluiOPixelQuaseVermelho() {
+         assertEquals(1, verificar(Map.of("arquivo", "quase-vermelho.png",
+                                          "cores_permitidas",
+                                          "vermelho, branco"))
+                               .get("foraDaPaleta").get("quantidade")
+                               .asLong());
+         assertEquals(0, verificar(Map.of("arquivo", "quase-vermelho.png",
+                                          "cores_permitidas",
+                                          "vermelho, branco",
+                                          "tolerancia", 1))
+                               .get("foraDaPaleta").get("quantidade")
+                               .asLong());
+      }
+
+      @Test
+      void corInvalidaIndicaOItem() {
+         CallToolResult resultado = chamar("verificar_paleta",
+               Map.of("arquivo", "banner.png",
+                      "cores_permitidas", "branco, xablau"));
+
+         assertErro("COR_INVALIDA", resultado);
+         assertTrue(Resultados.texto(resultado)
+                              .contains("cores_permitidas (item 2)"),
+                    Resultados.texto(resultado));
+      }
+
+      @Test
+      void errosDeParametrosEDeArquivo() {
+         assertErro("PARAMETRO_AUSENTE",
+                    chamar("verificar_paleta", Map.of("arquivo", "a.png")));
+         assertErro("PARAMETRO_INVALIDO",
+                    chamar("verificar_paleta",
+                           Map.of("arquivo", "banner.png",
+                                  "cores_permitidas", "branco,,preto")));
+         assertErro("PARAMETRO_INVALIDO",
+                    chamar("verificar_paleta",
+                           Map.of("arquivo", "banner.png",
+                                  "cores_permitidas",
+                                  String.join(",", java.util.Collections
+                                        .nCopies(31, "#FFF")))));
+         assertErro("IMAGEM_NAO_ENCONTRADA",
+                    chamar("verificar_paleta",
+                           Map.of("arquivo", "nada.png",
+                                  "cores_permitidas", "branco")));
+      }
+   }
+
+   @Nested
+   class ContrasteDasCoresDominantes {
+      private JsonNode contraste(Map<String, Object> argumentos) {
+         CallToolResult resultado = chamar("contraste_das_cores_dominantes",
+                                           argumentos);
+
+         assertFalse(resultado.isError(), Resultados.texto(resultado));
+         return Resultados.json(resultado);
+      }
+
+      @Test
+      void estaDisponivelComDescricaoESchema() {
+         assertFerramentaDisponivel("contraste_das_cores_dominantes");
+         assertDescricaoAvisaDaPasta("contraste_das_cores_dominantes");
+         assertEquals(List.of("arquivo"),
+                      ferramenta("contraste_das_cores_dominantes")
+                            .inputSchema().get("required"));
+      }
+
+      @Test
+      void vermelhoSobreBrancoDa4() {
+         JsonNode json = contraste(Map.of("arquivo", "vermelho-branco.png",
+                                          "passo_de_agrupamento", 1));
+         JsonNode c    = json.get("contraste");
+
+         assertEquals("#FF0000", c.get("corTexto").asString());
+         assertEquals("#FFFFFF", c.get("corFundo").asString());
+         assertEquals(4.0, c.get("razao").asDouble(), 0.01);
+         // falha AA texto normal, passa AA texto grande
+         assertFalse(c.get("vereditos").get(0).get("passa").asBoolean());
+         assertTrue(c.get("vereditos").get(1).get("passa").asBoolean());
+         assertTrue(json.get("avisos").get(0).asString()
+                        .contains("Aproximação"));
+      }
+
+      @Test
+      void imagemDeUmaCorSoTemContraste1() {
+         JsonNode json = contraste(Map.of("arquivo", "banner.png"));
+
+         assertEquals(1.0, json.get("contraste").get("razao").asDouble(), 0);
+         assertEquals(1, json.get("coresDominantes").size());
+         assertTrue(json.get("avisos").valueStream().anyMatch(
+               a -> a.asString().contains("única cor dominante")));
+      }
+
+      @Test
+      void imagemTodaTransparenteNaoTemContraste() {
+         JsonNode json = contraste(Map.of("arquivo", "icone.PNG"));
+
+         assertEquals(0, json.get("totalConsiderado").asLong());
+         assertTrue(json.get("contraste").isNull());
+      }
+
+      @Test
+      void passoForaDaFaixa() {
+         assertErro("PARAMETRO_INVALIDO",
+                    chamar("contraste_das_cores_dominantes",
+                           Map.of("arquivo", "banner.png",
+                                  "passo_de_agrupamento", 0)));
+      }
+
+      @Test
+      void errosDeArquivo() {
+         assertErro("PARAMETRO_AUSENTE",
+                    chamar("contraste_das_cores_dominantes", Map.of()));
+         assertErro("IMAGEM_NAO_ENCONTRADA",
+                    chamar("contraste_das_cores_dominantes",
+                           Map.of("arquivo", "nada.png")));
+         assertErro("IMAGEM_INVALIDA",
+                    chamar("contraste_das_cores_dominantes",
+                           Map.of("arquivo", "falsa.png")));
       }
    }
 

@@ -1,10 +1,8 @@
 package br.edu.ifpr.mcp_imagens.mcp.tools;
 
-import java.math.BigDecimal;
-
 import br.edu.ifpr.mcp_imagens.domain.criterio.Claro;
-import br.edu.ifpr.mcp_imagens.domain.model.Arredondamento;
 import br.edu.ifpr.mcp_imagens.domain.model.Imagem;
+import br.edu.ifpr.mcp_imagens.domain.model.Parcela;
 import br.edu.ifpr.mcp_imagens.domain.model.ResultadoContagem;
 import br.edu.ifpr.mcp_imagens.infra.repository.ImagemRepository;
 import br.edu.ifpr.mcp_imagens.mcp.utils.AbstractTool;
@@ -17,13 +15,10 @@ import br.edu.ifpr.mcp_imagens.service.ContadorDePixels;
  * quantos são escuros, separados por um limiar de brilho.
  */
 public class ProporcaoClaroEscuroTool extends AbstractTool {
-   /** Quantidade e percentual de um dos lados (claros ou escuros). */
-   public record Parte(long quantidade, BigDecimal percentual) {}
-
    /** Formato da resposta de sucesso. */
    public record Resultado(String arquivo, int limiar,
                            boolean ignorarTransparentes, long totalConsiderado,
-                           Parte claros, Parte escuros) {}
+                           Parcela claros, Parcela escuros) {}
 
    private final ImagemRepository repositorio;
    private final ContadorDePixels contador;
@@ -86,9 +81,7 @@ public class ProporcaoClaroEscuroTool extends AbstractTool {
       long escuros = total - claros;
 
       return new Resultado(arquivo, limiar, ignorar, total,
-                           new Parte(claros, contagem.percentual()),
-                           new Parte(escuros,
-                                     Arredondamento.percentual(escuros,
-                                                               total)));
+                           Parcela.de(claros, total),
+                           Parcela.de(escuros, total));
    }
 }

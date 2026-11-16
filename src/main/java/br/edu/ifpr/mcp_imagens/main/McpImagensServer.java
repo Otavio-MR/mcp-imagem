@@ -24,16 +24,20 @@ import br.edu.ifpr.mcp_imagens.mcp.tools.CalcularContrasteTool;
 import br.edu.ifpr.mcp_imagens.mcp.tools.CompararImagensTool;
 import br.edu.ifpr.mcp_imagens.mcp.tools.ContarPixelsDaCorTool;
 import br.edu.ifpr.mcp_imagens.mcp.tools.ContarPixelsTransparentesTool;
+import br.edu.ifpr.mcp_imagens.mcp.tools.ContrasteDasCoresDominantesTool;
 import br.edu.ifpr.mcp_imagens.mcp.tools.CoresDominantesTool;
 import br.edu.ifpr.mcp_imagens.mcp.tools.HistogramaDeBrilhoTool;
 import br.edu.ifpr.mcp_imagens.mcp.tools.ListarImagensTool;
 import br.edu.ifpr.mcp_imagens.mcp.tools.ObterInformacoesTool;
 import br.edu.ifpr.mcp_imagens.mcp.tools.ProporcaoClaroEscuroTool;
+import br.edu.ifpr.mcp_imagens.mcp.tools.VerificarPaletaTool;
 import br.edu.ifpr.mcp_imagens.mcp.utils.McpToolDefinition;
 import br.edu.ifpr.mcp_imagens.mcp.utils.ToolRegistry;
 import br.edu.ifpr.mcp_imagens.service.AnalisadorDeBrilhoPadrao;
+import br.edu.ifpr.mcp_imagens.service.AnalisadorDeCores;
 import br.edu.ifpr.mcp_imagens.service.AnalisadorDeCoresPadrao;
 import br.edu.ifpr.mcp_imagens.service.AnalisadorDeTransparenciaPadrao;
+import br.edu.ifpr.mcp_imagens.service.CalculadoraDeContraste;
 import br.edu.ifpr.mcp_imagens.service.CalculadoraDeContrastePadrao;
 import br.edu.ifpr.mcp_imagens.service.ComparadorDeImagensPadrao;
 import br.edu.ifpr.mcp_imagens.service.ContadorDePixels;
@@ -92,19 +96,23 @@ public class McpImagensServer {
       ImagemRepository     repositorio = base.repositorio();
       InformacoesService   informacoes = base.informacoes();
       ContadorDePixels     contador    = new ContadorDePixelsPadrao();
+      AnalisadorDeCores    cores       = new AnalisadorDeCoresPadrao();
+      CalculadoraDeContraste contraste = new CalculadoraDeContrastePadrao(
+                                                  base.wcag().criterios());
 
       return List.of(
          new ListarImagensTool(informacoes),
          new ObterInformacoesTool(informacoes),
          new ContarPixelsDaCorTool(repositorio, parser, contador),
-         new CoresDominantesTool(repositorio, new AnalisadorDeCoresPadrao()),
+         new CoresDominantesTool(repositorio, cores),
          new ProporcaoClaroEscuroTool(repositorio, contador),
          new ContarPixelsTransparentesTool(repositorio,
                new AnalisadorDeTransparenciaPadrao()),
          new HistogramaDeBrilhoTool(repositorio, new AnalisadorDeBrilhoPadrao()),
          new CompararImagensTool(repositorio, new ComparadorDeImagensPadrao()),
-         new CalcularContrasteTool(parser,
-               new CalculadoraDeContrastePadrao(base.wcag().criterios())));
+         new VerificarPaletaTool(repositorio, parser, contador, cores),
+         new ContrasteDasCoresDominantesTool(repositorio, cores, contraste),
+         new CalcularContrasteTool(parser, contraste));
    }
 
    private static List<McpResourceDefinition> criarResources(Base base) {
