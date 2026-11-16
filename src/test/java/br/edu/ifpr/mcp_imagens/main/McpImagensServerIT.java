@@ -65,6 +65,9 @@ class McpImagensServerIT {
       IMAGENS.put("tela.bmp", "BMP");
       IMAGENS.put("falsa.png", "PNG");
       IMAGENS.put("gigante.png", "PNG");
+      IMAGENS.put("vermelho-branco.png", "PNG");
+      IMAGENS.put("quase-vermelho.png", "PNG");
+      IMAGENS.put("alfas.png", "PNG");
    }
 
    private static Path          pastaDeImagens;
@@ -100,6 +103,25 @@ class McpImagensServerIT {
       ImagensDeTeste.criar(pastaDeImagens, "foto.jpg", 16, 16, 0xFF808080);
       ImagensDeTeste.criar(pastaDeImagens, "animacao.gif", 4, 4, VERMELHO);
       ImagensDeTeste.criar(pastaDeImagens, "tela.bmp", 6, 6, BRANCO);
+      // 10x10: 30 pixels vermelhos (3 primeiras linhas) e 70 brancos
+      int[] linhaVermelha = new int[10];
+      int[] linhaBranca   = new int[10];
+      java.util.Arrays.fill(linhaVermelha, VERMELHO);
+      java.util.Arrays.fill(linhaBranca, BRANCO);
+      int[][] trintaVermelhos = new int[10][];
+      for (int y = 0; y < 10; y++)
+         trintaVermelhos[y] = y < 3 ? linhaVermelha : linhaBranca;
+      ImagensDeTeste.criarComPixels(pastaDeImagens, "vermelho-branco.png",
+                                    trintaVermelhos);
+      // igual, mas o pixel (0, 0) é #FE0000 (quase vermelho)
+      int[][] quase = new int[10][];
+      for (int y = 0; y < 10; y++)
+         quase[y] = trintaVermelhos[y].clone();
+      quase[0][0] = 0xFFFE0000;
+      ImagensDeTeste.criarComPixels(pastaDeImagens, "quase-vermelho.png", quase);
+      // três pixels vermelhos com alfa 0, 128 e 255
+      ImagensDeTeste.criarComPixels(pastaDeImagens, "alfas.png",
+            new int[] { 0x00FF0000, 0x80FF0000, 0xFFFF0000 });
       // arquivo com extensão de imagem, mas que não é uma imagem
       Files.writeString(pastaDeImagens.resolve("falsa.png"), "não sou imagem");
       // cabeçalho que declara 6000 x 6000 pixels (acima do limite de 25 milhões)
@@ -172,7 +194,7 @@ class McpImagensServerIT {
    @Test
    void servidorDisponibilizaAsFerramentasEsperadas() {
       assertEquals(Set.of("listar_imagens", "obter_informacoes",
-                          "calcular_contraste"),
+                          "contar_pixels_da_cor", "calcular_contraste"),
                    client.listTools().tools().stream().map(Tool::name)
                          .collect(Collectors.toSet()));
    }
@@ -344,6 +366,88 @@ class McpImagensServerIT {
       @Test
       void arquivoAusente() {
          assertErro("PARAMETRO_AUSENTE", chamar("obter_informacoes", Map.of()));
+      }
+   }
+
+   @Nested
+   class ContarPixelsDaCor {
+      private JsonNode contar(Map<String, Object> argumentos) {
+         CallToolResult resultado = chamar("contar_pixels_da_cor", argumentos);
+
+         assertFalse(resultado.isError(), Resultados.texto(resultado));
+         return Resultados.json(resultado);
+      }
+
+      @Test
+      void estaDisponivelComDescricaoESchema() {
+         assertFerramentaDisponivel("contar_pixels_da_cor");
+         assertDescricaoAvisaDaPasta("contar_pixels_da_cor");
+         assertEquals(List.of("arquivo", "cor"),
+                      ferramenta("contar_pixels_da_cor").inputSchema()
+                                                        .get("required"));
+      }
+
+      @Test
+      void trintaVermelhosEmCem() {
+         JsonNode json = contar(Map.of("arquivo", "vermelho-branco.png",
+                                       "cor", "vermelho"));
+
+         assertEquals(30, json.get("quantidade").asLong());
+         assertEquals(100, json.get("totalConsiderado").asLong());
+         assertEquals(30.0, json.get("percentual").asDouble(), 0.0);
+      }
+
+      @Test
+      void toleranciaIncluiOPixelQuaseVermelho() {
+         assertEquals(29, contar(Map.of("arquivo", "quase-vermelho.png",
+                                        "cor", "#FF0000"))
+                               .get("quantidade").asLong());
+         assertEquals(30, contar(Map.of("arquivo", "quase-vermelho.png",
+                                        "cor", "#FF0000", "tolerancia", 1))
+                               .get("quantidade").asLong());
+      }
+
+      @Test
+      void transparentesSaoIgnoradosPorPadrao() {
+         JsonNode padrao = contar(Map.of("arquivo", "alfas.png",
+                                         "cor", "#F00"));
+         JsonNode todos  = contar(Map.of("arquivo", "alfas.png",
+                                         "cor", "#F00",
+                                         "ignorar_transparentes", false));
+
+         assertEquals(2, padrao.get("totalConsiderado").asLong());
+         assertEquals(3, todos.get("totalConsiderado").asLong());
+      }
+
+      @Test
+      void toleranciaForaDaFaixa() {
+         assertErro("PARAMETRO_INVALIDO",
+                    chamar("contar_pixels_da_cor",
+                           Map.of("arquivo", "banner.png", "cor", "#000",
+                                  "tolerancia", 256)));
+      }
+
+      @Test
+      void corInvalida() {
+         assertErro("COR_INVALIDA",
+                    chamar("contar_pixels_da_cor",
+                           Map.of("arquivo", "banner.png", "cor", "xablau")));
+      }
+
+      @Test
+      void parametroAusente() {
+         assertErro("PARAMETRO_AUSENTE",
+                    chamar("contar_pixels_da_cor", Map.of("arquivo", "banner.png")));
+      }
+
+      @Test
+      void imagemInexistenteEImagemInvalida() {
+         assertErro("IMAGEM_NAO_ENCONTRADA",
+                    chamar("contar_pixels_da_cor",
+                           Map.of("arquivo", "nada.png", "cor", "#000")));
+         assertErro("IMAGEM_INVALIDA",
+                    chamar("contar_pixels_da_cor",
+                           Map.of("arquivo", "falsa.png", "cor", "#000")));
       }
    }
 

@@ -16,5 +16,10 @@ public final class TextosDasFerramentas {
          "listar_imagens): imagens anexadas à conversa NÃO ficam " +
          "disponíveis ao servidor.";
 
+   /** Descrição do parâmetro {@code ignorar_transparentes}. */
+   public static final String PARAMETRO_IGNORAR_TRANSPARENTES =
+         "Se true (padrão), os pixels totalmente transparentes (alfa 0) são " +
+         "ignorados: não entram na contagem nem no total considerado";
+
    private TextosDasFerramentas() {}
 }

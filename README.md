@@ -201,6 +201,50 @@ Erros específicos:
 
 ---
 
+### `contar_pixels_da_cor`
+
+Conta exatamente quantos pixels da imagem têm uma cor e o percentual sobre o
+total considerado. A comparação é feita nos canais vermelho, verde e azul (o
+alfa não entra), com uma tolerância opcional por canal.
+
+| Parâmetro | Tipo | Obrigatório | Descrição |
+|---|---|---|---|
+| `arquivo` | string | sim | nome do arquivo, como mostrado por `listar_imagens` |
+| `cor` | string | sim | `#RRGGBB`, `#RGB` ou nome (ex.: `vermelho`) |
+| `tolerancia` | inteiro 0 a 255 | não (padrão 0) | diferença máxima permitida em cada canal; 0 = só a cor exata |
+| `ignorar_transparentes` | booleano | não (padrão `true`) | se `true`, pixels com alfa 0 não entram na contagem nem no total |
+
+Exemplo de chamada: `{"arquivo": "vermelho-branco.png", "cor": "vermelho"}`
+
+```json
+{
+  "arquivo" : "vermelho-branco.png",
+  "cor" : "#FF0000",
+  "tolerancia" : 0,
+  "ignorarTransparentes" : true,
+  "quantidade" : 30,
+  "totalConsiderado" : 100,
+  "percentual" : 30.00
+}
+```
+
+`percentual` tem 2 casas decimais. Se todos os pixels forem transparentes e
+`ignorar_transparentes` for `true`, o total considerado é 0 e o percentual
+também (sem erro).
+
+Erros específicos:
+
+| Código | Causa |
+|---|---|
+| `COR_INVALIDA` | `cor` não é hexadecimal válido nem um nome conhecido (a mensagem cita o parâmetro `cor`) |
+| `PARAMETRO_INVALIDO` | `tolerancia` fora de 0 a 255 ou não inteira, `ignorar_transparentes` não booleano, ou `arquivo` inválido |
+| `PARAMETRO_AUSENTE` | falta `arquivo` ou `cor` |
+| `IMAGEM_NAO_ENCONTRADA`, `FORMATO_NAO_SUPORTADO`, `IMAGEM_INVALIDA`, `IMAGEM_MUITO_GRANDE` | iguais aos de `obter_informacoes` |
+
+Erros nos parâmetros são verificados antes de abrir a imagem.
+
+---
+
 ### `calcular_contraste`
 
 Calcula a razão de contraste entre a cor do texto e a do fundo pela fórmula do

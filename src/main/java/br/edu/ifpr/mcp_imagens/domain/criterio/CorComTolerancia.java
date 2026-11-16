@@ -13,6 +13,13 @@ import br.edu.ifpr.mcp_imagens.domain.model.Cor;
  * ignorá-los na contagem.
  */
 public final class CorComTolerancia implements CriterioDePixel {
+   /** Menor tolerância: só a cor exata. */
+   public static final int TOLERANCIA_MINIMA = 0;
+   /** Maior tolerância: qualquer cor serve. */
+   public static final int TOLERANCIA_MAXIMA = 255;
+   /** Tolerância usada quando a ferramenta não recebe uma. */
+   public static final int TOLERANCIA_PADRAO = 0;
+
    private final int r;
    private final int g;
    private final int b;
@@ -24,10 +31,12 @@ public final class CorComTolerancia implements CriterioDePixel {
     * @throws ParametroInvalidoException se a tolerância estiver fora da faixa
     */
    public CorComTolerancia(Cor alvo, int tolerancia) {
-      if (tolerancia < 0 || tolerancia > 255)
+      if (tolerancia < TOLERANCIA_MINIMA || tolerancia > TOLERANCIA_MAXIMA)
          throw new ParametroInvalidoException("a tolerância deve estar entre " +
-                                              "0 e 255 (recebido: " +
-                                              tolerancia + ")");
+                                              TOLERANCIA_MINIMA + " e " +
+                                              TOLERANCIA_MAXIMA +
+                                              " (recebido: " + tolerancia +
+                                              ")");
       this.r          = alvo.r();
       this.g          = alvo.g();
       this.b          = alvo.b();

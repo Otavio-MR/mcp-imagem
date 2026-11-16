@@ -14,11 +14,14 @@ import br.edu.ifpr.mcp_imagens.infra.loader.ImageIoLoader;
 import br.edu.ifpr.mcp_imagens.infra.repository.ImagemRepository;
 import br.edu.ifpr.mcp_imagens.infra.repository.ImagemRepositoryEmDisco;
 import br.edu.ifpr.mcp_imagens.mcp.tools.CalcularContrasteTool;
+import br.edu.ifpr.mcp_imagens.mcp.tools.ContarPixelsDaCorTool;
 import br.edu.ifpr.mcp_imagens.mcp.tools.ListarImagensTool;
 import br.edu.ifpr.mcp_imagens.mcp.tools.ObterInformacoesTool;
 import br.edu.ifpr.mcp_imagens.mcp.utils.McpToolDefinition;
 import br.edu.ifpr.mcp_imagens.mcp.utils.ToolRegistry;
 import br.edu.ifpr.mcp_imagens.service.CalculadoraDeContrastePadrao;
+import br.edu.ifpr.mcp_imagens.service.ContadorDePixels;
+import br.edu.ifpr.mcp_imagens.service.ContadorDePixelsPadrao;
 import br.edu.ifpr.mcp_imagens.service.InformacoesService;
 import br.edu.ifpr.mcp_imagens.service.InformacoesServicePadrao;
 import io.modelcontextprotocol.json.jackson3.JacksonMcpJsonMapper;
@@ -63,9 +66,12 @@ public class McpImagensServer {
       InformacoesService   informacoes = new InformacoesServicePadrao(
                                                                  repositorio);
 
+      ContadorDePixels     contador    = new ContadorDePixelsPadrao();
+
       return List.of(
          new ListarImagensTool(informacoes),
          new ObterInformacoesTool(informacoes),
+         new ContarPixelsDaCorTool(repositorio, parser, contador),
          new CalcularContrasteTool(parser,
                new CalculadoraDeContrastePadrao(wcag.criterios())));
    }
