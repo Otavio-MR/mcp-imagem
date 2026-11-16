@@ -14,8 +14,8 @@ O servidor **não chama nenhuma IA**: ele mede e calcula. A interpretação ("is
 > ferramentas de análise do servidor (`listar_imagens`, `obter_informacoes`,
 > `contar_pixels_da_cor`, `cores_dominantes`, `proporcao_claro_escuro`,
 > `contar_pixels_transparentes`, `histograma_de_brilho`, `comparar_imagens` e
-> `calcular_contraste`). Resources, prompts, o cliente refatorado, o Claude
-> Desktop e o MCP Inspector serão acrescentados nas próximas fases.
+> `calcular_contraste`) e o cliente. Resources, prompts, o Claude Desktop e o
+> MCP Inspector serão acrescentados nas próximas fases.
 
 ## Convenções
 
@@ -592,6 +592,52 @@ Erros específicos:
 | `PARAMETRO_INVALIDO` | cor em branco, ou parâmetro que não existe (por exemplo `arquivo`) |
 
 ---
+
+## Cliente MCP
+
+O cliente é um programa de console que inicia o servidor como subprocesso (STDIO),
+lista as ferramentas e executa **qualquer uma** delas: ele lê o schema JSON da
+ferramenta escolhida e pergunta o valor de cada parâmetro, sem saber nada das
+ferramentas de antemão. Suporta os tipos `string`, `integer`, `number` e
+`boolean`, os únicos usados pelo servidor.
+
+Como executar (depois de `mvn clean package -Pserver -DskipTests` e
+`mvn clean package -Pclient -DskipTests`):
+
+```bash
+cd target/dist-client
+java -jar mcp_imagens_client.jar
+```
+
+Os caminhos são relativos à pasta `target/dist-client`, de onde o cliente deve
+ser executado: o JAR do servidor é `../../server/mcp_imagens_server.jar` e, se a
+variável de ambiente `IMG_DIR` não estiver definida, a pasta de imagens é
+`../../imagens`. Com `IMG_DIR` definida, o cliente repassa o valor ao servidor.
+
+Uso:
+
+| Digite | O que acontece |
+|---|---|
+| o número ou o nome de uma ferramenta | o cliente pede os parâmetros e mostra o resultado |
+| `listar` | pede de novo a lista de ferramentas ao servidor |
+| `sair` | encerra o cliente (o fim da entrada também encerra) |
+
+Ao pedir um parâmetro, o cliente mostra o tipo, se é obrigatório, o valor padrão
+e a faixa permitida (quando o schema informa). Parâmetros opcionais deixados em
+branco não são enviados, e o servidor usa o padrão. Valores que não servem ao
+tipo (por exemplo `abc` para um inteiro) são recusados na hora, e booleanos
+aceitam `true`/`false` ou `sim`/`não`.
+
+O código do cliente está dividido em classes pequenas, no pacote `client`:
+
+| Classe | Responsabilidade |
+|---|---|
+| `McpImagensClient` (pacote `main`) | coordena o ciclo menu, escolha, parâmetros, execução, resultado |
+| `FabricaDeClienteMcp` | localiza o JAR do servidor, inicia o subprocesso e repassa `IMG_DIR` |
+| `MenuConsole` | mostra o menu e interpreta a escolha (número ou nome) |
+| `ArgumentPrompter` | pergunta os parâmetros a partir do schema da ferramenta |
+| `ConversorDeValores` | converte o texto digitado para o tipo do parâmetro |
+| `ResultPrinter` | mostra o resultado da ferramenta |
 
 ## Pré-requisitos
 
