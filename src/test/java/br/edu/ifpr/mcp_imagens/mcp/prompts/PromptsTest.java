@@ -139,4 +139,20 @@ class PromptsTest {
       assertTrue(descrever.argumentos().get(0).required());
       assertFalse(descrever.argumentos().get(1).required());
    }
+
+   @Test
+   void textosDosPromptsTemUmaLinhaPorItemESemEspacosSobrando() {
+      String analisar = texto(obter(this.analisar, "a",
+                                    Map.of("arquivo", "banner.png")));
+      String descrever = texto(obter(this.descrever, "d",
+                                     Map.of("arquivo", "banner.png")));
+
+      for (String texto : List.of(analisar, descrever)) {
+         assertFalse(texto.contains("  "), texto);
+         assertTrue(texto.contains("\n1. "), texto);
+         assertTrue(texto.contains("\n2. "), texto);
+         assertTrue(texto.contains("\n3. "), texto);
+      }
+      assertTrue(analisar.contains("\n4. "), analisar);
+   }
 }

@@ -3,6 +3,7 @@ package br.edu.ifpr.mcp_imagens.mcp.tools;
 import br.edu.ifpr.mcp_imagens.mcp.utils.AbstractTool;
 import br.edu.ifpr.mcp_imagens.mcp.utils.ArgumentReader;
 import br.edu.ifpr.mcp_imagens.mcp.utils.InputSchema;
+import br.edu.ifpr.mcp_imagens.mcp.utils.Parametros;
 import br.edu.ifpr.mcp_imagens.service.InformacoesService;
 
 /**
@@ -37,11 +38,12 @@ public class ObterInformacoesTool extends AbstractTool {
    @Override
    protected InputSchema schema() {
       return InputSchema.novo()
-                        .texto("arquivo", TextosDasFerramentas.PARAMETRO_ARQUIVO);
+                        .texto(Parametros.ARQUIVO,
+                   TextosDasFerramentas.PARAMETRO_ARQUIVO);
    }
 
    @Override
    protected Object executar(ArgumentReader argumentos) {
-      return informacoes.obter(argumentos.texto("arquivo"));
+      return informacoes.obter(argumentos.texto(Parametros.ARQUIVO));
    }
 }

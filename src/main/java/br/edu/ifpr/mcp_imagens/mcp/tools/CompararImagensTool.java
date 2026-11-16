@@ -8,6 +8,7 @@ import br.edu.ifpr.mcp_imagens.infra.repository.ImagemRepository;
 import br.edu.ifpr.mcp_imagens.mcp.utils.AbstractTool;
 import br.edu.ifpr.mcp_imagens.mcp.utils.ArgumentReader;
 import br.edu.ifpr.mcp_imagens.mcp.utils.InputSchema;
+import br.edu.ifpr.mcp_imagens.mcp.utils.Parametros;
 import br.edu.ifpr.mcp_imagens.service.ComparadorDeImagens;
 
 /**
@@ -59,7 +60,8 @@ public class CompararImagensTool extends AbstractTool {
                                 TextosDasFerramentas.PARAMETRO_ARQUIVO)
             .texto("arquivo_b", "Segunda imagem: " +
                                 TextosDasFerramentas.PARAMETRO_ARQUIVO)
-            .inteiroOpcional("tolerancia", "Diferença máxima aceita em cada " +
+            .inteiroOpcional(Parametros.TOLERANCIA,
+                             "Diferença máxima aceita em cada " +
                              "canal (0 = só pixels idênticos)",
                              ComparadorDeImagens.TOLERANCIA_MINIMA,
                              ComparadorDeImagens.TOLERANCIA_MAXIMA,
@@ -72,7 +74,7 @@ public class CompararImagensTool extends AbstractTool {
       String arquivoA   = argumentos.texto("arquivo_a");
       String arquivoB   = argumentos.texto("arquivo_b");
       int    tolerancia = argumentos.inteiroOpcional(
-                                "tolerancia",
+                                Parametros.TOLERANCIA,
                                 ComparadorDeImagens.TOLERANCIA_PADRAO,
                                 ComparadorDeImagens.TOLERANCIA_MINIMA,
                                 ComparadorDeImagens.TOLERANCIA_MAXIMA);

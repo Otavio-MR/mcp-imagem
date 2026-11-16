@@ -66,16 +66,6 @@ class ClaroTest {
       assertFalse(claro.aceita(0x00000000));
    }
 
-   @Test
-   void negadoSaoOsEscuros() {
-      CriterioDePixel escuro = new Claro(128).negado();
-
-      assertTrue(escuro.aceita(0xFF000000));
-      assertTrue(escuro.aceita(0xFF7F7F7F));
-      assertFalse(escuro.aceita(0xFF808080));
-      assertFalse(escuro.aceita(0xFFFFFFFF));
-   }
-
    @ParameterizedTest
    @ValueSource(ints = { -1, 256, 1000 })
    void limiarForaDaFaixaEhRecusado(int limiar) {

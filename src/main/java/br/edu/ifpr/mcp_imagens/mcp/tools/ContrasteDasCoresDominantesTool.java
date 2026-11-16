@@ -12,6 +12,7 @@ import br.edu.ifpr.mcp_imagens.infra.repository.ImagemRepository;
 import br.edu.ifpr.mcp_imagens.mcp.utils.AbstractTool;
 import br.edu.ifpr.mcp_imagens.mcp.utils.ArgumentReader;
 import br.edu.ifpr.mcp_imagens.mcp.utils.InputSchema;
+import br.edu.ifpr.mcp_imagens.mcp.utils.Parametros;
 import br.edu.ifpr.mcp_imagens.service.AnalisadorDeCores;
 import br.edu.ifpr.mcp_imagens.service.CalculadoraDeContraste;
 
@@ -85,8 +86,9 @@ public class ContrasteDasCoresDominantesTool extends AbstractTool {
    @Override
    protected InputSchema schema() {
       return InputSchema.novo()
-            .texto("arquivo", TextosDasFerramentas.PARAMETRO_ARQUIVO)
-            .inteiroOpcional("passo_de_agrupamento", "Tamanho da faixa de " +
+            .texto(Parametros.ARQUIVO, TextosDasFerramentas.PARAMETRO_ARQUIVO)
+            .inteiroOpcional(Parametros.PASSO_DE_AGRUPAMENTO,
+                             "Tamanho da faixa de " +
                              "cada canal de cor usada para agrupar cores " +
                              "parecidas (1 = cores exatas; maior = grupos " +
                              "mais amplos)",
@@ -98,9 +100,9 @@ public class ContrasteDasCoresDominantesTool extends AbstractTool {
    @Override
    protected Object executar(ArgumentReader argumentos) {
       // primeiro os parâmetros, depois o arquivo
-      String arquivo = argumentos.texto("arquivo");
+      String arquivo = argumentos.texto(Parametros.ARQUIVO);
       int    passo   = argumentos.inteiroOpcional(
-                             "passo_de_agrupamento",
+                             Parametros.PASSO_DE_AGRUPAMENTO,
                              AnalisadorDeCores.PASSO_PADRAO,
                              AnalisadorDeCores.PASSO_MINIMO,
                              AnalisadorDeCores.PASSO_MAXIMO);
@@ -110,27 +112,35 @@ public class ContrasteDasCoresDominantesTool extends AbstractTool {
                         imagem, QUANTIDADE_DE_CORES, passo, true);
       List<CorDominante> cores = dominantes.cores();
 
+      return new Resultado(arquivo, passo, dominantes.totalConsiderado(),
+                           cores, contrasteDe(cores), avisosDe(cores, passo));
+   }
+
+   /**
+    * Contraste entre as duas cores, ou {@code null} se não há cores. A cor mais
+    * frequente é o fundo; sem uma segunda cor, o contraste é o da cor com ela
+    * mesma (1,00).
+    */
+   private ResultadoContraste contrasteDe(List<CorDominante> cores) {
+      if (cores.isEmpty())
+         return null;
+
+      Cor fundo = Cor.deHex(cores.get(0).cor());
+      Cor texto = cores.size() > 1 ? Cor.deHex(cores.get(1).cor()) : fundo;
+
+      return calculadora.calcular(texto, fundo);
+   }
+
+   private List<String> avisosDe(List<CorDominante> cores, int passo) {
       List<String> avisos = new ArrayList<>();
 
       avisos.add(AVISO_APROXIMACAO);
       if (passo > 1)
          avisos.add(AVISO_GRUPOS);
-
-      ResultadoContraste contraste = null;
-
       if (cores.isEmpty())
          avisos.add(AVISO_SEM_PIXELS);
-      else {
-         // a cor mais frequente é o fundo; sem segunda cor, o contraste é
-         // da cor com ela mesma (1,00)
-         Cor fundo = Cor.deHex(cores.get(0).cor());
-         Cor texto = cores.size() > 1 ? Cor.deHex(cores.get(1).cor()) : fundo;
-
-         contraste = calculadora.calcular(texto, fundo);
-         if (cores.size() == 1)
-            avisos.add(AVISO_UMA_COR);
-      }
-      return new Resultado(arquivo, passo, dominantes.totalConsiderado(),
-                           cores, contraste, avisos);
+      else if (cores.size() == 1)
+         avisos.add(AVISO_UMA_COR);
+      return avisos;
    }
 }

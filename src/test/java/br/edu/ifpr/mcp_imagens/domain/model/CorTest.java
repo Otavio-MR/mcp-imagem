@@ -102,72 +102,40 @@ class CorTest {
       void hexVoltaAoMesmoValor() {
          assertEquals("#12ABCD", Cor.deHex("#12abcd").hex());
       }
-
-      @Test
-      void argbNoFormatoDoBufferedImage() {
-         assertEquals(0xFFFF0000, new Cor(255, 0, 0).argb());
-         assertEquals(0x80112233, new Cor(0x11, 0x22, 0x33, 0x80).argb());
-         assertEquals(0x00000000, new Cor(0, 0, 0, 0).argb());
-      }
-
-      @Test
-      void deArgbSeparaOsComponentes() {
-         assertEquals(new Cor(0x11, 0x22, 0x33, 0x80),
-                      Cor.deArgb(0x80112233));
-         assertEquals(new Cor(255, 255, 255, 255), Cor.deArgb(0xFFFFFFFF));
-         assertEquals(new Cor(0, 0, 0, 0), Cor.deArgb(0));
-      }
-
-      @Test
-      void argbEDeArgbSaoInversos() {
-         Cor cor = new Cor(200, 100, 50, 25);
-
-         assertEquals(cor, Cor.deArgb(cor.argb()));
-      }
    }
 
    @Nested
    class Brilho {
+      // pixel opaco com os componentes dados
+      private int argb(int r, int g, int b) {
+         return 0xFF000000 | (r << 16) | (g << 8) | b;
+      }
+
       @Test
       void lumaDoBrancoEDoPreto() {
-         assertEquals(255.0, new Cor(255, 255, 255).luma(), 1e-9);
-         assertEquals(0.0, new Cor(0, 0, 0).luma(), 1e-9);
+         assertEquals(255.0, Cor.luma(0xFFFFFFFF), 0.0);
+         assertEquals(0.0, Cor.luma(0xFF000000), 0.0);
       }
 
       @Test
       void lumaPesaOsCanaisComoNaEspecificacao() {
-         assertEquals(0.2126 * 255, new Cor(255, 0, 0).luma(), 1e-9);
-         assertEquals(0.7152 * 255, new Cor(0, 255, 0).luma(), 1e-9);
-         assertEquals(0.0722 * 255, new Cor(0, 0, 255).luma(), 1e-9);
+         assertEquals(0.2126 * 255, Cor.luma(argb(255, 0, 0)), 1e-9);
+         assertEquals(0.7152 * 255, Cor.luma(argb(0, 255, 0)), 1e-9);
+         assertEquals(0.0722 * 255, Cor.luma(argb(0, 0, 255)), 1e-9);
       }
 
       @Test
       void lumaIgnoraOAlfa() {
-         assertEquals(new Cor(10, 20, 30, 255).luma(),
-                      new Cor(10, 20, 30, 0).luma(), 1e-9);
+         assertEquals(Cor.luma(0xFF336699), Cor.luma(0x00336699), 0.0);
       }
 
       @Test
       void lumaDeTodoCinzaEExatamenteOValorDele() {
          // com double, 67 dos 256 tons dariam valores como 4,999999999999999
          for (int v = 0; v <= 255; v++) {
-            assertEquals((double) v, new Cor(v, v, v).luma(), "cinza " + v);
-            assertEquals(v, (int) new Cor(v, v, v).luma(), "truncado " + v);
+            assertEquals((double) v, Cor.luma(argb(v, v, v)), "cinza " + v);
+            assertEquals(v, (int) Cor.luma(argb(v, v, v)), "truncado " + v);
          }
-      }
-
-      @Test
-      void lumaDeArgbValeOMesmoQueDaCor() {
-         Cor cor = new Cor(200, 100, 50, 25);
-
-         assertEquals(cor.luma(), Cor.luma(cor.argb()), 0.0);
-         assertEquals(255.0, Cor.luma(0xFFFFFFFF), 0.0);
-         assertEquals(0.0, Cor.luma(0xFF000000), 0.0);
-      }
-
-      @Test
-      void lumaDeArgbIgnoraOAlfa() {
-         assertEquals(Cor.luma(0xFF336699), Cor.luma(0x00336699), 0.0);
       }
    }
 

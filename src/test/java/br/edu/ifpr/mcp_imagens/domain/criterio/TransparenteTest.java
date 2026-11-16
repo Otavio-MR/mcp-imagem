@@ -31,13 +31,4 @@ class TransparenteTest {
       assertFalse(criterio.aceita(0xFF000000));
       assertFalse(criterio.aceita(0xFFFFFFFF));
    }
-
-   @Test
-   void negadoAceitaTodoPixelNaoTransparente() {
-      CriterioDePixel visivel = criterio.negado();
-
-      assertFalse(visivel.aceita(0x00FF0000));
-      assertTrue(visivel.aceita(0x01000000));
-      assertTrue(visivel.aceita(0xFF000000));
-   }
 }

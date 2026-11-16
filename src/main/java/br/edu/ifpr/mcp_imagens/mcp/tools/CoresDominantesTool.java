@@ -9,6 +9,7 @@ import br.edu.ifpr.mcp_imagens.infra.repository.ImagemRepository;
 import br.edu.ifpr.mcp_imagens.mcp.utils.AbstractTool;
 import br.edu.ifpr.mcp_imagens.mcp.utils.ArgumentReader;
 import br.edu.ifpr.mcp_imagens.mcp.utils.InputSchema;
+import br.edu.ifpr.mcp_imagens.mcp.utils.Parametros;
 import br.edu.ifpr.mcp_imagens.service.AnalisadorDeCores;
 
 /**
@@ -54,19 +55,21 @@ public class CoresDominantesTool extends AbstractTool {
    @Override
    protected InputSchema schema() {
       return InputSchema.novo()
-            .texto("arquivo", TextosDasFerramentas.PARAMETRO_ARQUIVO)
-            .inteiroOpcional("quantidade", "Quantas cores devolver",
+            .texto(Parametros.ARQUIVO, TextosDasFerramentas.PARAMETRO_ARQUIVO)
+            .inteiroOpcional(Parametros.QUANTIDADE,
+                             "Quantas cores devolver",
                              AnalisadorDeCores.QUANTIDADE_MINIMA,
                              AnalisadorDeCores.QUANTIDADE_MAXIMA,
                              AnalisadorDeCores.QUANTIDADE_PADRAO)
-            .inteiroOpcional("passo_de_agrupamento", "Tamanho da faixa de " +
+            .inteiroOpcional(Parametros.PASSO_DE_AGRUPAMENTO,
+                             "Tamanho da faixa de " +
                              "cada canal de cor usada para agrupar cores " +
                              "parecidas (1 = cores exatas; maior = grupos " +
                              "mais amplos)",
                              AnalisadorDeCores.PASSO_MINIMO,
                              AnalisadorDeCores.PASSO_MAXIMO,
                              AnalisadorDeCores.PASSO_PADRAO)
-            .booleanoOpcional("ignorar_transparentes",
+            .booleanoOpcional(Parametros.IGNORAR_TRANSPARENTES,
                               TextosDasFerramentas
                                     .PARAMETRO_IGNORAR_TRANSPARENTES, true);
    }
@@ -74,19 +77,19 @@ public class CoresDominantesTool extends AbstractTool {
    @Override
    protected Object executar(ArgumentReader argumentos) {
       // primeiro os parâmetros, depois o arquivo
-      String  arquivo    = argumentos.texto("arquivo");
+      String  arquivo    = argumentos.texto(Parametros.ARQUIVO);
       int     quantidade = argumentos.inteiroOpcional(
-                                 "quantidade",
+                                 Parametros.QUANTIDADE,
                                  AnalisadorDeCores.QUANTIDADE_PADRAO,
                                  AnalisadorDeCores.QUANTIDADE_MINIMA,
                                  AnalisadorDeCores.QUANTIDADE_MAXIMA);
       int     passo      = argumentos.inteiroOpcional(
-                                 "passo_de_agrupamento",
+                                 Parametros.PASSO_DE_AGRUPAMENTO,
                                  AnalisadorDeCores.PASSO_PADRAO,
                                  AnalisadorDeCores.PASSO_MINIMO,
                                  AnalisadorDeCores.PASSO_MAXIMO);
-      boolean ignorar    = argumentos.booleanoOpcional("ignorar_transparentes",
-                                                       true);
+      boolean ignorar    = argumentos.booleanoOpcional(
+                      Parametros.IGNORAR_TRANSPARENTES, true);
       Imagem  imagem     = repositorio.abrir(arquivo).imagem();
 
       ResultadoCoresDominantes resultado = analisador.coresDominantes(

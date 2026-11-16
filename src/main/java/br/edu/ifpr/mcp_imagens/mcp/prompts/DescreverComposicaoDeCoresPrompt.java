@@ -3,6 +3,7 @@ package br.edu.ifpr.mcp_imagens.mcp.prompts;
 import java.util.List;
 
 import br.edu.ifpr.mcp_imagens.mcp.utils.ArgumentReader;
+import br.edu.ifpr.mcp_imagens.mcp.utils.Parametros;
 import br.edu.ifpr.mcp_imagens.service.AnalisadorDeCores;
 import io.modelcontextprotocol.spec.McpSchema.PromptArgument;
 
@@ -30,10 +31,10 @@ public class DescreverComposicaoDeCoresPrompt extends AbstractPrompt {
    @Override
    protected List<PromptArgument> argumentos() {
       return List.of(
-            new PromptArgument("arquivo",
+            new PromptArgument(Parametros.ARQUIVO,
                   "Nome do arquivo da imagem, como mostrado por " +
                   "listar_imagens", true),
-            new PromptArgument("quantidade",
+            new PromptArgument(Parametros.QUANTIDADE,
                   "Quantas cores dominantes incluir (de " +
                   AnalisadorDeCores.QUANTIDADE_MINIMA + " a " +
                   AnalisadorDeCores.QUANTIDADE_MAXIMA + "; padrão " +
@@ -42,9 +43,9 @@ public class DescreverComposicaoDeCoresPrompt extends AbstractPrompt {
 
    @Override
    protected String montarTexto(ArgumentReader argumentos) {
-      String arquivo    = argumentos.texto("arquivo");
+      String arquivo    = argumentos.texto(Parametros.ARQUIVO);
       int    quantidade = argumentos.inteiroOpcional(
-                                 "quantidade",
+                                 Parametros.QUANTIDADE,
                                  AnalisadorDeCores.QUANTIDADE_PADRAO,
                                  AnalisadorDeCores.QUANTIDADE_MINIMA,
                                  AnalisadorDeCores.QUANTIDADE_MAXIMA);

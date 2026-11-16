@@ -8,6 +8,7 @@ import br.edu.ifpr.mcp_imagens.infra.repository.ImagemRepository;
 import br.edu.ifpr.mcp_imagens.mcp.utils.AbstractTool;
 import br.edu.ifpr.mcp_imagens.mcp.utils.ArgumentReader;
 import br.edu.ifpr.mcp_imagens.mcp.utils.InputSchema;
+import br.edu.ifpr.mcp_imagens.mcp.utils.Parametros;
 import br.edu.ifpr.mcp_imagens.service.ContadorDePixels;
 
 /**
@@ -52,12 +53,12 @@ public class ProporcaoClaroEscuroTool extends AbstractTool {
    @Override
    protected InputSchema schema() {
       return InputSchema.novo()
-            .texto("arquivo", TextosDasFerramentas.PARAMETRO_ARQUIVO)
+            .texto(Parametros.ARQUIVO, TextosDasFerramentas.PARAMETRO_ARQUIVO)
             .inteiroOpcional("limiar", "Brilho mínimo (0 a 255) para um " +
                              "pixel ser considerado claro",
                              Claro.LIMIAR_MINIMO, Claro.LIMIAR_MAXIMO,
                              Claro.LIMIAR_PADRAO)
-            .booleanoOpcional("ignorar_transparentes",
+            .booleanoOpcional(Parametros.IGNORAR_TRANSPARENTES,
                               TextosDasFerramentas
                                     .PARAMETRO_IGNORAR_TRANSPARENTES, true);
    }
@@ -65,13 +66,13 @@ public class ProporcaoClaroEscuroTool extends AbstractTool {
    @Override
    protected Object executar(ArgumentReader argumentos) {
       // primeiro os parâmetros, depois o arquivo
-      String  arquivo = argumentos.texto("arquivo");
+      String  arquivo = argumentos.texto(Parametros.ARQUIVO);
       int     limiar  = argumentos.inteiroOpcional("limiar",
                                                    Claro.LIMIAR_PADRAO,
                                                    Claro.LIMIAR_MINIMO,
                                                    Claro.LIMIAR_MAXIMO);
-      boolean ignorar = argumentos.booleanoOpcional("ignorar_transparentes",
-                                                    true);
+      boolean ignorar = argumentos.booleanoOpcional(
+                      Parametros.IGNORAR_TRANSPARENTES, true);
       Imagem  imagem  = repositorio.abrir(arquivo).imagem();
 
       ResultadoContagem contagem = contador.contar(imagem, new Claro(limiar),

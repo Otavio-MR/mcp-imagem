@@ -97,6 +97,6 @@ class CorComToleranciaTest {
    }
 
    private static int argb(int r, int g, int b) {
-      return new Cor(r, g, b).argb();
+      return 0xFF000000 | (r << 16) | (g << 8) | b;
    }
 }

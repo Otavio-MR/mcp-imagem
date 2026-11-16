@@ -64,28 +64,9 @@ public record Cor(int r, int g, int b, int a) {
                      Integer.parseInt(digitos.substring(4, 6), 16));
    }
 
-   /** Cor a partir do valor ARGB devolvido por {@code BufferedImage.getRGB}. */
-   public static Cor deArgb(int argb) {
-      return new Cor((argb >> 16) & 0xFF, (argb >> 8) & 0xFF, argb & 0xFF,
-                     (argb >>> 24) & 0xFF);
-   }
-
-   /** Valor ARGB, no formato de {@code BufferedImage.getRGB}. */
-   public int argb() {
-      return (a << 24) | (r << 16) | (g << 8) | b;
-   }
-
    /** "#RRGGBB" em maiúsculas; o alfa não aparece. */
    public String hex() {
       return String.format("#%02X%02X%02X", r, g, b);
-   }
-
-   /**
-    * Brilho (luma), de 0 a 255, sobre os componentes sRGB sem linearizar:
-    * {@code 0,2126*R + 0,7152*G + 0,0722*B}.
-    */
-   public double luma() {
-      return luma(r, g, b);
    }
 
    /**

@@ -7,6 +7,7 @@ import br.edu.ifpr.mcp_imagens.infra.repository.ImagemRepository;
 import br.edu.ifpr.mcp_imagens.mcp.utils.AbstractTool;
 import br.edu.ifpr.mcp_imagens.mcp.utils.ArgumentReader;
 import br.edu.ifpr.mcp_imagens.mcp.utils.InputSchema;
+import br.edu.ifpr.mcp_imagens.mcp.utils.Parametros;
 import br.edu.ifpr.mcp_imagens.service.AnalisadorDeTransparencia;
 
 /**
@@ -50,12 +51,13 @@ public class ContarPixelsTransparentesTool extends AbstractTool {
    @Override
    protected InputSchema schema() {
       return InputSchema.novo()
-            .texto("arquivo", TextosDasFerramentas.PARAMETRO_ARQUIVO);
+            .texto(Parametros.ARQUIVO,
+                   TextosDasFerramentas.PARAMETRO_ARQUIVO);
    }
 
    @Override
    protected Object executar(ArgumentReader argumentos) {
-      String  arquivo = argumentos.texto("arquivo");
+      String  arquivo = argumentos.texto(Parametros.ARQUIVO);
       Imagem  imagem  = repositorio.abrir(arquivo).imagem();
 
       ResultadoTransparencia contagem = analisador.analisar(imagem);

@@ -143,6 +143,9 @@ class ContadorDePixelsPadraoTest {
 
    @Nested
    class ClaroEEscuro {
+      // o contrário de Claro(128): brilho abaixo do limiar
+      private final CriterioDePixel escuro128 = argb -> Cor.luma(argb) < 128;
+
       // metade esquerda preta, metade direita branca
       private final Imagem metadeMetade = ImagensSinteticas.gerar(10, 10,
             (x, y) -> x < 5 ? PRETO : BRANCO);
@@ -155,7 +158,7 @@ class ContadorDePixelsPadraoTest {
 
       @Test
       void cinquentaPorCentoEscuros() {
-         confere(contador.contar(metadeMetade, new Claro(128).negado(), true),
+         confere(contador.contar(metadeMetade, escuro128, true),
                  50, 100, "50.00");
       }
 
@@ -166,8 +169,7 @@ class ContadorDePixelsPadraoTest {
                                                             : PRETO);
          ResultadoContagem claros   = contador.contar(imagem, new Claro(128),
                                                       true);
-         ResultadoContagem escuros  = contador.contar(imagem,
-                                                      new Claro(128).negado(),
+         ResultadoContagem escuros  = contador.contar(imagem, escuro128,
                                                       true);
 
          assertEquals(21, claros.quantidade() + escuros.quantidade());
@@ -209,8 +211,8 @@ class ContadorDePixelsPadraoTest {
       confere(contador.contar(umTerco, new CorComTolerancia(new Cor(255, 0, 0),
                                                             0), true),
               1, 3, "33.33");
-      confere(contador.contar(umTerco, new CorComTolerancia(new Cor(255, 0, 0),
-                                                            0).negado(), true),
+      // os outros dois terços: os pixels brancos
+      confere(contador.contar(umTerco, argb -> argb == BRANCO, true),
               2, 3, "66.67");
    }
 

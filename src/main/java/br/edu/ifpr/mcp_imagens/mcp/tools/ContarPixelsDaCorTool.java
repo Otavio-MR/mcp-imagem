@@ -11,6 +11,7 @@ import br.edu.ifpr.mcp_imagens.infra.repository.ImagemRepository;
 import br.edu.ifpr.mcp_imagens.mcp.utils.AbstractTool;
 import br.edu.ifpr.mcp_imagens.mcp.utils.ArgumentReader;
 import br.edu.ifpr.mcp_imagens.mcp.utils.InputSchema;
+import br.edu.ifpr.mcp_imagens.mcp.utils.Parametros;
 import br.edu.ifpr.mcp_imagens.service.ContadorDePixels;
 
 /**
@@ -58,15 +59,16 @@ public class ContarPixelsDaCorTool extends AbstractTool {
    @Override
    protected InputSchema schema() {
       return InputSchema.novo()
-            .texto("arquivo", TextosDasFerramentas.PARAMETRO_ARQUIVO)
+            .texto(Parametros.ARQUIVO, TextosDasFerramentas.PARAMETRO_ARQUIVO)
             .texto("cor", "Cor procurada: #RRGGBB, #RGB ou nome (ex.: " +
                           "#FF0000, vermelho)")
-            .inteiroOpcional("tolerancia", "Diferença máxima permitida por " +
+            .inteiroOpcional(Parametros.TOLERANCIA,
+                             "Diferença máxima permitida por " +
                              "canal de cor (0 = só a cor exata)",
                              CorComTolerancia.TOLERANCIA_MINIMA,
                              CorComTolerancia.TOLERANCIA_MAXIMA,
                              CorComTolerancia.TOLERANCIA_PADRAO)
-            .booleanoOpcional("ignorar_transparentes",
+            .booleanoOpcional(Parametros.IGNORAR_TRANSPARENTES,
                               TextosDasFerramentas
                                     .PARAMETRO_IGNORAR_TRANSPARENTES, true);
    }
@@ -75,15 +77,15 @@ public class ContarPixelsDaCorTool extends AbstractTool {
    protected Object executar(ArgumentReader argumentos) {
       // primeiro os parâmetros, depois o arquivo: erro de parâmetro não
       // precisa abrir a imagem
-      String  arquivo    = argumentos.texto("arquivo");
+      String  arquivo    = argumentos.texto(Parametros.ARQUIVO);
       Cor     cor        = parser.parse(argumentos.texto("cor"), "cor");
       int     tolerancia = argumentos.inteiroOpcional(
-                                 "tolerancia",
+                                 Parametros.TOLERANCIA,
                                  CorComTolerancia.TOLERANCIA_PADRAO,
                                  CorComTolerancia.TOLERANCIA_MINIMA,
                                  CorComTolerancia.TOLERANCIA_MAXIMA);
-      boolean ignorar    = argumentos.booleanoOpcional("ignorar_transparentes",
-                                                       true);
+      boolean ignorar    = argumentos.booleanoOpcional(
+                      Parametros.IGNORAR_TRANSPARENTES, true);
       Imagem  imagem     = repositorio.abrir(arquivo).imagem();
 
       ResultadoContagem contagem = contador.contar(

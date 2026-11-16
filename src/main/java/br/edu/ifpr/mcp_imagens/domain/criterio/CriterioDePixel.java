@@ -15,9 +15,4 @@ public interface CriterioDePixel {
     * @return {@code true} se o pixel atende ao critério
     */
    boolean aceita(int argb);
-
-   /** Critério inverso: aceita exatamente os pixels que este recusa. */
-   default CriterioDePixel negado() {
-      return argb -> !aceita(argb);
-   }
 }

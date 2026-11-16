@@ -6,7 +6,7 @@ import br.edu.ifpr.mcp_imagens.domain.model.Cor;
 /**
  * Aceita os pixels claros: brilho (luma) maior ou igual ao limiar.
  * <p>
- * Os pixels escuros são os que este critério recusa; use {@link #negado()}.
+ * Os pixels escuros são os que este critério recusa.
  */
 public final class Claro implements CriterioDePixel {
    public static final int LIMIAR_MINIMO = 0;

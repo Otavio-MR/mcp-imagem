@@ -17,6 +17,7 @@ import br.edu.ifpr.mcp_imagens.infra.repository.ImagemRepository;
 import br.edu.ifpr.mcp_imagens.mcp.utils.AbstractTool;
 import br.edu.ifpr.mcp_imagens.mcp.utils.ArgumentReader;
 import br.edu.ifpr.mcp_imagens.mcp.utils.InputSchema;
+import br.edu.ifpr.mcp_imagens.mcp.utils.Parametros;
 import br.edu.ifpr.mcp_imagens.service.AnalisadorDeCores;
 import br.edu.ifpr.mcp_imagens.service.ContadorDePixels;
 
@@ -79,17 +80,18 @@ public class VerificarPaletaTool extends AbstractTool {
    @Override
    protected InputSchema schema() {
       return InputSchema.novo()
-            .texto("arquivo", TextosDasFerramentas.PARAMETRO_ARQUIVO)
+            .texto(Parametros.ARQUIVO, TextosDasFerramentas.PARAMETRO_ARQUIVO)
             .texto("cores_permitidas", "Cores da paleta, separadas por " +
                    "vírgula, de 1 a " + MAXIMO_DE_CORES + " (ex.: " +
                    "#FFFFFF, #000000, azul)")
-            .inteiroOpcional("tolerancia", "Diferença máxima permitida por " +
+            .inteiroOpcional(Parametros.TOLERANCIA,
+                             "Diferença máxima permitida por " +
                              "canal de cor para um pixel contar como uma " +
                              "cor da paleta (0 = só a cor exata)",
                              CorComTolerancia.TOLERANCIA_MINIMA,
                              CorComTolerancia.TOLERANCIA_MAXIMA,
                              CorComTolerancia.TOLERANCIA_PADRAO)
-            .booleanoOpcional("ignorar_transparentes",
+            .booleanoOpcional(Parametros.IGNORAR_TRANSPARENTES,
                               TextosDasFerramentas
                                     .PARAMETRO_IGNORAR_TRANSPARENTES, true);
    }
@@ -97,17 +99,17 @@ public class VerificarPaletaTool extends AbstractTool {
    @Override
    protected Object executar(ArgumentReader argumentos) {
       // primeiro os parâmetros, depois o arquivo
-      String    arquivo    = argumentos.texto("arquivo");
+      String    arquivo    = argumentos.texto(Parametros.ARQUIVO);
       List<Cor> paleta     = parser.parseLista(
                                    argumentos.texto("cores_permitidas"),
                                    "cores_permitidas", MAXIMO_DE_CORES);
       int       tolerancia = argumentos.inteiroOpcional(
-                                   "tolerancia",
+                                   Parametros.TOLERANCIA,
                                    CorComTolerancia.TOLERANCIA_PADRAO,
                                    CorComTolerancia.TOLERANCIA_MINIMA,
                                    CorComTolerancia.TOLERANCIA_MAXIMA);
       boolean   ignorar    = argumentos.booleanoOpcional(
-                                   "ignorar_transparentes", true);
+                                   Parametros.IGNORAR_TRANSPARENTES, true);
       Imagem    imagem     = repositorio.abrir(arquivo).imagem();
 
       CriterioDePixel foraDaPaleta = new ForaDaPaleta(paleta, tolerancia);

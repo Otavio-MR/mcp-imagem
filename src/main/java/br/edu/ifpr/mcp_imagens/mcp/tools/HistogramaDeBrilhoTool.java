@@ -9,6 +9,7 @@ import br.edu.ifpr.mcp_imagens.infra.repository.ImagemRepository;
 import br.edu.ifpr.mcp_imagens.mcp.utils.AbstractTool;
 import br.edu.ifpr.mcp_imagens.mcp.utils.ArgumentReader;
 import br.edu.ifpr.mcp_imagens.mcp.utils.InputSchema;
+import br.edu.ifpr.mcp_imagens.mcp.utils.Parametros;
 import br.edu.ifpr.mcp_imagens.service.AnalisadorDeBrilho;
 
 /**
@@ -54,13 +55,13 @@ public class HistogramaDeBrilhoTool extends AbstractTool {
    @Override
    protected InputSchema schema() {
       return InputSchema.novo()
-            .texto("arquivo", TextosDasFerramentas.PARAMETRO_ARQUIVO)
+            .texto(Parametros.ARQUIVO, TextosDasFerramentas.PARAMETRO_ARQUIVO)
             .inteiroOpcional("faixas", "Em quantas faixas dividir a escala " +
                              "de brilho",
                              AnalisadorDeBrilho.FAIXAS_MINIMO,
                              AnalisadorDeBrilho.FAIXAS_MAXIMO,
                              AnalisadorDeBrilho.FAIXAS_PADRAO)
-            .booleanoOpcional("ignorar_transparentes",
+            .booleanoOpcional(Parametros.IGNORAR_TRANSPARENTES,
                               TextosDasFerramentas
                                     .PARAMETRO_IGNORAR_TRANSPARENTES, true);
    }
@@ -68,13 +69,13 @@ public class HistogramaDeBrilhoTool extends AbstractTool {
    @Override
    protected Object executar(ArgumentReader argumentos) {
       // primeiro os parâmetros, depois o arquivo
-      String  arquivo = argumentos.texto("arquivo");
+      String  arquivo = argumentos.texto(Parametros.ARQUIVO);
       int     faixas  = argumentos.inteiroOpcional(
                               "faixas", AnalisadorDeBrilho.FAIXAS_PADRAO,
                               AnalisadorDeBrilho.FAIXAS_MINIMO,
                               AnalisadorDeBrilho.FAIXAS_MAXIMO);
-      boolean ignorar = argumentos.booleanoOpcional("ignorar_transparentes",
-                                                    true);
+      boolean ignorar = argumentos.booleanoOpcional(
+                      Parametros.IGNORAR_TRANSPARENTES, true);
       Imagem  imagem  = repositorio.abrir(arquivo).imagem();
 
       ResultadoHistograma histograma = analisador.histograma(imagem, faixas,
