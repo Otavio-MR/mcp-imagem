@@ -916,8 +916,6 @@ existir, o erro aparece quando a IA chamar as ferramentas.
 * **Prompts não conferem o arquivo.** `analisar_acessibilidade_de_cores` e
   `descrever_composicao_de_cores` só montam o texto; se o arquivo não existir, o
   erro aparece quando a IA chamar as ferramentas.
-* **Testes manuais pendentes.** O Claude Desktop e o MCP Inspector (Docker)
-  ainda precisam ser testados e registrados na tabela de testes manuais.
 
 ## Pré-requisitos
 
@@ -1047,6 +1045,8 @@ nome dele.
    `claude_desktop_config.json`:
    * Windows: `%APPDATA%\Claude\claude_desktop_config.json`
    * macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+
+   Se o arquivo não estiver nesse caminho, abra-o pelo próprio Claude Desktop (**Settings, Developer, Edit Config**): em algumas instalações ele fica em outra pasta.
 3. Acrescente o servidor em `mcpServers` (ajuste os caminhos para o seu
    computador).
 
@@ -1147,8 +1147,8 @@ exercitado nestes clientes:
 |---|---|
 | Cliente de console deste projeto (`mcp_imagens_client.jar`) | funciona: lista as 11 ferramentas, pede os parâmetros pelo schema e executa; os comandos `recursos`, `ler`, `prompts` e `prompt` funcionam |
 | Chamadas JSON-RPC diretas pela entrada padrão do servidor (STDIO) | funciona: as 11 ferramentas respondem com as imagens de `imagens/`, também com várias chamadas enviadas em sequência rápida |
-| Claude Desktop | a registrar após o teste (veja o passo a passo acima) |
-| MCP Inspector (Docker) | a registrar após o teste (veja o passo a passo acima) |
+| Claude Desktop | funciona (19/11/2026, PC do laboratório do IFPR, Windows 11, JDK 25.0.1): o servidor `mcp-imagens` aparece com as 11 ferramentas, e os resultados com as imagens de exemplo conferem com a tabela "Perguntas para experimentar", inclusive o erro `IMAGEM_NAO_ENCONTRADA` |
+| MCP Inspector (Docker) | funciona (19/11/2026, mesmo PC, Docker 29.1.3, Inspector 2.16.0): as abas Tools (11), Resources (3) e Prompts (2) listam tudo, e `listar_imagens` encontra as 4 imagens de `imagens/`; o `compose.yaml` repassa `IMG_DIR` com `-e`, porque o Inspector não passa as variáveis do contêiner ao servidor |
 
 ## Referências
 
