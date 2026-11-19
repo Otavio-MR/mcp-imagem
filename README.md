@@ -1059,10 +1059,10 @@ nome dele.
          "command": "java",
          "args": [
            "-jar",
-           "C:\projetos\mcp_imagens\server\mcp_imagens_server.jar"
+           "C:\\projetos\\mcp_imagens\\server\\mcp_imagens_server.jar"
          ],
          "env": {
-           "IMG_DIR": "C:\projetos\mcp_imagens\imagens"
+           "IMG_DIR": "C:\\projetos\\mcp_imagens\\imagens"
          }
        }
      }
