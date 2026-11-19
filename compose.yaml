@@ -18,8 +18,11 @@ services:
      volumes:
        - ./server:/opt/mcp/server:ro
        - ./imagens:/opt/mcp/imagens:ro
-     # executa o servidor MCP em Java
+     # executa o servidor MCP em Java; o "-e" repassa o IMG_DIR ao servidor,
+     # porque o Inspector não passa as variáveis do contêiner adiante
      command:
+       - -e
+       - IMG_DIR=/opt/mcp/imagens
        - java
        - -jar
        - /opt/mcp/server/mcp_imagens_server.jar
